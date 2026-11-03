@@ -1,0 +1,9 @@
+{
+  "name": "maelity-backend",
+  "version": "1.0.0",
+  "description": "Proxy de IA/voz para el mod Maelity (chat, STT, TTS)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node test/smoke.js" },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

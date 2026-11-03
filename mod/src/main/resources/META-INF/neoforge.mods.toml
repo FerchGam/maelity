@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "maelity"
+version = "1.0.0"
+displayName = "Maelity"
+description = '''
+Maelity: a floating AI companion with shifting personalities. Talk to her with your voice (hold V),
+ask her where to find diamonds or villages in YOUR seed, and watch her mood change as you play.
+'''
+
+[[dependencies.maelity]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.maelity]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
