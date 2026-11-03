@@ -6,10 +6,12 @@ import dev.maelity.net.ClientHandlers;
 import dev.maelity.net.SayPayload;
 import dev.maelity.net.ServerHandlers;
 import dev.maelity.net.SpeakPayload;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -28,6 +30,7 @@ public class MaelityMod {
         modBus.addListener(ModItems::onCreativeTab);
         container.registerConfig(ModConfig.Type.COMMON, MaelityConfig.COMMON_SPEC);
         container.registerConfig(ModConfig.Type.CLIENT, MaelityConfig.CLIENT_SPEC);
+        if (FMLEnvironment.dist == Dist.CLIENT) dev.maelity.client.ConfigScreenSetup.register(container);
     }
 
     private static void onAttributes(EntityAttributeCreationEvent e) {

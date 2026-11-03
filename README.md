@@ -17,7 +17,7 @@ Antes de compilar, confirma las versiones de `mod/gradle.properties` (`moddev_ve
 ## 2. Que cada jugador use su propia clave (todo gratis, sin servidor)
 El mod habla directo con Groq; no hace falta backend. Cada jugador:
 1. Crea una cuenta gratis en https://console.groq.com y en *API Keys* pulsa **Create API Key** (empieza con `gsk_`).
-2. En el juego escribe: `/maelity key gsk_TU_CLAVE`
+2. Pégala en el juego: **Mods > Maelity > Config > IA (conversación) > Clave de Groq**, o escribe `/maelity key gsk_TU_CLAVE`
 3. Listo: mantén **V** para hablar o escribe `maelity, hola`.
 La voz de Maelity usa las voces que ya trae Windows (gratis, sin internet). Para mejor voz en español, instala una voz en
 *Configuración de Windows > Hora e idioma > Voz*. En otros sistemas Maelity responde por texto.
