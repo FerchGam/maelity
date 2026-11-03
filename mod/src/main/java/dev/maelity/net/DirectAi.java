@@ -25,7 +25,9 @@ import java.util.regex.Pattern;
  */
 public final class DirectAi {
     private static final String BASE = "https://api.groq.com/openai/v1";
-    private static final String CHAT_MODEL = "llama-3.3-70b-versatile";
+    // Groq retira modelos cada tanto: se prueba en orden y se recuerda el primero que funcione.
+    private static final String[] CHAT_MODELS = {"openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"};
+    private static volatile int modelIdx = 0;
     private static final String STT_MODEL = "whisper-large-v3-turbo";
 
     public static final class NoKeyException extends IOException {
@@ -40,10 +42,16 @@ public final class DirectAi {
         }
     }
 
-    private static final HttpClient HTTP = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(8))
-            .version(HttpClient.Version.HTTP_1_1)
-            .build();
+    private static final HttpClient HTTP = buildClient();
+
+    private static HttpClient buildClient() {
+        HttpClient.Builder b = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(8))
+                .version(HttpClient.Version.HTTP_1_1);
+        javax.net.ssl.SSLContext ctx = TrustStores.javaPlusWindows();   // confia tambien en los certificados de Windows
+        if (ctx != null) b.sslContext(ctx);
+        return b.build();
+    }
 
     private static final List<Pattern> HALLUCINATIONS = List.of(
             Pattern.compile("amara\\.org", Pattern.CASE_INSENSITIVE),
@@ -75,25 +83,43 @@ public final class DirectAi {
     /** messagesJson: arreglo JSON de {role, content}. Devuelve {"content": "<json del modelo>"}. */
     public static CompletableFuture<String> chat(String messagesJson) {
         try {
+            return chatWith(JsonParser.parseString(messagesJson).getAsJsonArray(), modelIdx);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private static CompletableFuture<String> chatWith(JsonArray messages, int idx) {
+        try {
+            String model = CHAT_MODELS[idx];
             JsonObject payload = new JsonObject();
-            payload.addProperty("model", CHAT_MODEL);
-            payload.add("messages", JsonParser.parseString(messagesJson).getAsJsonArray());
+            payload.addProperty("model", model);
+            payload.add("messages", messages);
             payload.addProperty("temperature", 0.8);
-            payload.addProperty("max_tokens", 220);
+            payload.addProperty("max_completion_tokens", 700);        // los modelos "gpt-oss" gastan tokens pensando
+            if (model.startsWith("openai/gpt-oss")) payload.addProperty("reasoning_effort", "low");
             JsonObject fmt = new JsonObject();
             fmt.addProperty("type", "json_object");
             payload.add("response_format", fmt);
-            HttpRequest r = req("/chat/completions", Duration.ofSeconds(25))
+            HttpRequest r = req("/chat/completions", Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload.toString(), StandardCharsets.UTF_8)).build();
-            return send(r).thenApply(body -> {
+            return send(r).<String>thenApply(body -> {
+                modelIdx = idx;
                 String content = JsonParser.parseString(body).getAsJsonObject()
                         .getAsJsonArray("choices").get(0).getAsJsonObject()
                         .getAsJsonObject("message").get("content").getAsString();
                 JsonObject out = new JsonObject();
                 out.addProperty("content", content);
                 return out.toString();
-            });
+            }).<CompletableFuture<String>>handle((ok, err) -> {
+                if (err == null) return CompletableFuture.completedFuture(ok);
+                Throwable t = err;
+                while (t != null && !(t instanceof HttpStatusException)) t = t.getCause();
+                boolean modelProblem = t instanceof HttpStatusException h && (h.status == 404 || h.status == 400);
+                if (modelProblem && idx + 1 < CHAT_MODELS.length) return chatWith(messages, idx + 1);
+                return CompletableFuture.failedFuture(err);
+            }).thenCompose(f -> f);
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
         }
