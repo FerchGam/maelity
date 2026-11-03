@@ -91,6 +91,14 @@ public final class MaelityConfig {
         public final ModConfigSpec.BooleanValue languageChosen;
         public final ModConfigSpec.BooleanValue voiceEnabled;
         public final ModConfigSpec.DoubleValue volume;
+        public final ModConfigSpec.ConfigValue<String> shape;
+        public final ModConfigSpec.ConfigValue<String> faceStyle;
+        public final ModConfigSpec.BooleanValue moodColors;
+        public final ModConfigSpec.ConfigValue<String> singleColor;
+        public final java.util.Map<String, ModConfigSpec.ConfigValue<String>> moodColor = new java.util.LinkedHashMap<>();
+
+        private static final java.util.function.Predicate<Object> HEX =
+                o -> o instanceof String s && s.trim().matches("#?[0-9a-fA-F]{6}");
 
         Client(ModConfigSpec.Builder b) {
             String sys = Locale.getDefault().getLanguage().equals("es") ? "es" : "en";
@@ -102,6 +110,28 @@ public final class MaelityConfig {
                     .translation(T + "voiceEnabled")
                     .define("voiceEnabled", true);
             volume = b.translation(T + "volume").defineInRange("volume", 0.9, 0.0, 1.0);
+
+            b.translation(T + "look").push("look");
+            shape = b.comment("Forma de Maelity: cube (cubo) | ball (pelotita)")
+                    .translation(T + "shape")
+                    .defineInList("shape", "cube", new ArrayList<>(List.of("cube", "ball")));
+            faceStyle = b.comment("Estilo de cara: classic | cute | cat | robot | minimal")
+                    .translation(T + "faceStyle")
+                    .defineInList("faceStyle", "classic", new ArrayList<>(List.of("classic", "cute", "cat", "robot", "minimal")));
+            moodColors = b.comment("El color cambia segun el humor. Si es false, usa singleColor siempre.")
+                    .translation(T + "moodColors")
+                    .define("moodColors", true);
+            singleColor = b.comment("Color fijo (formato #RRGGBB) cuando moodColors = false.")
+                    .translation(T + "singleColor")
+                    .define("singleColor", "#FFD60A", HEX);
+            String[][] defaults = {{"friendly", "#FFD60A"}, {"playful", "#FF8FD8"}, {"sarcastic", "#7FD4A8"},
+                    {"protective", "#3D8BFF"}, {"mysterious", "#8A5CD6"}, {"angry", "#E8402A"}};
+            for (String[] d : defaults) {
+                moodColor.put(d[0], b.comment("Color (#RRGGBB) cuando esta " + d[0])
+                        .translation(T + "color_" + d[0])
+                        .define("color_" + d[0], d[1], HEX));
+            }
+            b.pop();
         }
     }
 

@@ -27,5 +27,17 @@
   "maelity.configuration.giftsEnabled": "Puede regalarte cosas",
   "maelity.configuration.giftsMaxTier": "Regalo más valioso (common / rare / epic)",
   "maelity.configuration.defendEnabled": "Te defiende de monstruos",
-  "maelity.configuration.proactiveComments": "Comenta por su cuenta"
+  "maelity.configuration.proactiveComments": "Comenta por su cuenta",
+  "maelity.configuration.look": "Apariencia",
+  "maelity.configuration.look.button": "Apariencia",
+  "maelity.configuration.shape": "Forma (cube = cubo, ball = pelotita)",
+  "maelity.configuration.faceStyle": "Cara (classic, cute, cat, robot, minimal)",
+  "maelity.configuration.moodColors": "El color cambia con el humor",
+  "maelity.configuration.singleColor": "Color fijo (#RRGGBB)",
+  "maelity.configuration.color_friendly": "Color: amigable",
+  "maelity.configuration.color_playful": "Color: juguetona",
+  "maelity.configuration.color_sarcastic": "Color: sarcástica",
+  "maelity.configuration.color_protective": "Color: protectora",
+  "maelity.configuration.color_mysterious": "Color: misteriosa",
+  "maelity.configuration.color_angry": "Color: enfadada"
 }

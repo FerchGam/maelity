@@ -38,8 +38,8 @@ class MaelityGuideGoal extends Goal {
         double dx = t.getX() + 0.5 - o.getX();
         double dz = t.getZ() + 0.5 - o.getZ();
         double horiz = Math.sqrt(dx * dx + dz * dz);
-        if (horiz < 6) { // llegamos
-            maelity.setGuideTarget(null);
+        if (horiz < 8) { // llegamos
+            maelity.onArrived();
             return;
         }
         if (--recalc > 0) return;

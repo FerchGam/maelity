@@ -18,6 +18,8 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -71,6 +73,9 @@ public class MaelityEntity extends PathfinderMob {
     private boolean stay;
     private boolean pendingHit;
     private BlockPos guideTarget;
+    @Nullable private BlockPos lastFound;          // ultimo lugar encontrado (para "si, llevame")
+    private String lastFoundName = "";
+    private long lastFoundTick = Long.MIN_VALUE / 4;
     private volatile boolean thinking;
     private int hitsThisMinute;
     private long hitWindowStart;
@@ -137,6 +142,25 @@ public class MaelityEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_MOOD, 0);
+    }
+
+    /** En el cliente: al cambiar de humor suelta unas particulas (corazones, notas, humo...). */
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (DATA_MOOD.equals(key) && level().isClientSide && tickCount > 5) {
+            ParticleOptions p = switch (getPersonality()) {
+                case FRIENDLY -> ParticleTypes.HEART;
+                case PLAYFUL -> ParticleTypes.NOTE;
+                case SARCASTIC -> ParticleTypes.SMOKE;
+                case PROTECTIVE -> ParticleTypes.CRIT;
+                case MYSTERIOUS -> ParticleTypes.WITCH;
+                case ANGRY -> ParticleTypes.ANGRY_VILLAGER;
+            };
+            for (int i = 0; i < 8; i++) {
+                level().addParticle(p, getRandomX(0.8), getRandomY() + 0.2, getRandomZ(0.8), 0.0, 0.05, 0.0);
+            }
+        }
     }
 
     // ------------------------------------------------------------------ vuelo (igual que Allay)
@@ -586,6 +610,42 @@ public class MaelityEntity extends PathfinderMob {
     public void setThinking(boolean t) { this.thinking = t; }
     @Nullable public BlockPos getGuideTarget() { return guideTarget; }
     public void setGuideTarget(@Nullable BlockPos p) { this.guideTarget = p; if (p != null) stay = false; }
+
+    /** Recuerda el ultimo resultado de busqueda para poder guiar despues ("si, llevame"). */
+    public void setLastFound(BlockPos p, String name) {
+        lastFound = p;
+        lastFoundName = name == null ? "" : name;
+        lastFoundTick = level().getGameTime();
+    }
+
+    /** Hay un lugar encontrado hace poco (15 min) al que aun no estamos yendo. */
+    public boolean hasGuideOffer() {
+        return lastFound != null && guideTarget == null && level().getGameTime() - lastFoundTick < 20L * 60 * 15;
+    }
+
+    @Nullable public BlockPos lastFound() { return lastFound; }
+    public String lastFoundName() { return lastFoundName; }
+
+    /** Empieza a guiar hacia el ultimo lugar encontrado. */
+    public boolean startGuiding() {
+        if (lastFound == null) return false;
+        setGuideTarget(lastFound);
+        recordEvent("you started guiding the player to " + lastFoundName);
+        return true;
+    }
+
+    /** Llamado por la meta de guiar al llegar. */
+    void onArrived() {
+        guideTarget = null;
+        lastFound = null;
+        Player o = getOwner();
+        recordEvent("you and the player arrived at " + lastFoundName);
+        if (o instanceof ServerPlayer sp) {
+            boolean es = "es".equals(lang);
+            MaelityBrain.event(sp, this, "You just ARRIVED with the player at the " + lastFoundName + " you guided them to. Announce it in character.",
+                    es ? "¡Llegamos! Aquí está." : "We're here!");
+        }
+    }
 
     public void forceMood(Personality p) {
         mood.force(p, level().getGameTime(), 20 * 30);

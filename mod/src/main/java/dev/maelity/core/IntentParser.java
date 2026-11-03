@@ -33,6 +33,22 @@ public final class IntentParser {
             "(?<![a-z])(gracias|eres genial|buen trabajo|bien hecho|te quiero|eres la mejor|"
                     + "thanks|thank you|good job|well done|love you|you re great|you are great)(?![a-z])");
 
+    private static final Pattern YES = Pattern.compile(
+            "(?<![a-z])(si|claro|vale|ok|okay|dale|de acuerdo|vamos|por favor|porfa|llevame|guiame|ensename el camino|"
+                    + "yes|yeah|yep|sure|lets go|let s go|take me|lead me|guide me|lead the way|show me the way)(?![a-z])");
+    private static final Pattern NO = Pattern.compile("(?<![a-z])(no|nope|nah|todavia no|not now|mejor no)(?![a-z])");
+    private static final Pattern GUIDE_ME = Pattern.compile(
+            "(llevame|guiame|acompaname|ensename el camino|muestrame el camino|take me|lead me|guide me|show me the way|lead the way)");
+
+    /** Respuesta afirmativa ("si", "dale", "yes"...) y sin un "no" delante. */
+    public static boolean isYes(String raw) {
+        String t = normalize(raw);
+        return YES.matcher(t).find() && !NO.matcher(t).find();
+    }
+
+    /** Pide que lo guie ("llevame", "guiame"), aunque no diga a donde. */
+    public static boolean wantsGuide(String raw) { return GUIDE_ME.matcher(normalize(raw)).find(); }
+
     /** El jugador la esta insultando (es/en). Sube su enfado sin depender del modelo. */
     public static boolean isInsult(String raw) { return INSULT.matcher(normalize(raw)).find(); }
 

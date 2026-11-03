@@ -30,7 +30,7 @@ public final class PromptBuilder {
           .append("When the player asks where to find a material, structure or biome, set \"find\" to ONE id from CATALOG; ")
           .append("the game computes the real location from the world seed and will tell the player. ")
           .append("Just acknowledge naturally (e.g. 'Let me look...').\n")
-          .append("- Actions: \"follow\" (come with player), \"stay\" (wait here), \"guide\" (lead the player to the found place), ")
+          .append("- Actions: \"follow\" (come with player), \"stay\" (wait here), \"guide\" (fly ahead and lead the player to WORLD STATE.last_found_place; use it whenever the player accepts your offer to guide them, e.g. they say yes), ")
           .append("\"defend\" (attack the nearest monster near the player), \"flee\" (fly away from danger), ")
           .append("\"hit_player\" (a small slap) ONLY if the player explicitly asks to be hit, or you are truly angry (anger >= 70). Otherwise \"none\".\n")
           .append("- BE SMART: read WORLD STATE (health, food, inventory, threats, recent_events, time, place) and give concrete, useful ")
@@ -101,6 +101,13 @@ public final class PromptBuilder {
         can.addProperty("epic_items", cd[2] == 0);
         me.add("can_give", can);
         o.add("maelity", me);
+        if (maelity.lastFound() != null) {
+            JsonObject lf = new JsonObject();
+            lf.addProperty("place", maelity.lastFoundName());
+            lf.addProperty("distance", (int) Math.round(Math.sqrt(maelity.lastFound().distToCenterSqr(p.getX(), maelity.lastFound().getY(), p.getZ()))));
+            lf.addProperty("guiding_now", maelity.getGuideTarget() != null);
+            o.add("last_found_place", lf);
+        }
         JsonArray ev = new JsonArray();
         long now = level.getGameTime();
         for (MaelityEntity.GameEvent e : maelity.recentEvents()) ev.add(((now - e.tick()) / 20) + "s ago: " + e.text());

@@ -27,5 +27,17 @@
   "maelity.configuration.giftsEnabled": "Can give you items",
   "maelity.configuration.giftsMaxTier": "Most valuable gift (common / rare / epic)",
   "maelity.configuration.defendEnabled": "Defends you from monsters",
-  "maelity.configuration.proactiveComments": "Comments on her own"
+  "maelity.configuration.proactiveComments": "Comments on her own",
+  "maelity.configuration.look": "Appearance",
+  "maelity.configuration.look.button": "Appearance",
+  "maelity.configuration.shape": "Shape (cube or ball)",
+  "maelity.configuration.faceStyle": "Face (classic, cute, cat, robot, minimal)",
+  "maelity.configuration.moodColors": "Color changes with mood",
+  "maelity.configuration.singleColor": "Fixed color (#RRGGBB)",
+  "maelity.configuration.color_friendly": "Color: friendly",
+  "maelity.configuration.color_playful": "Color: playful",
+  "maelity.configuration.color_sarcastic": "Color: sarcastic",
+  "maelity.configuration.color_protective": "Color: protective",
+  "maelity.configuration.color_mysterious": "Color: mysterious",
+  "maelity.configuration.color_angry": "Color: angry"
 }

@@ -48,11 +48,20 @@ public final class MaelityBrain {
             note = ok ? "The player asked you to slap them; you are about to do it."
                       : "The player asked you to hit them but you are not allowed right now (too hurt or too soon). Refuse in character.";
         }
+        boolean guideNow = false;
+        // "si" / "llevame" despues de que Maelity encontro algo: empieza a guiar YA (sin esperar a la IA)
+        if (intent.find() == null && maelity.hasGuideOffer()
+                && (IntentParser.wantsGuide(text) || (IntentParser.isYes(text) && text.trim().length() <= 40))) {
+            maelity.startGuiding();
+            guideNow = true;
+            note = "The player agreed to be guided to the " + maelity.lastFoundName() + ". You are now flying ahead to lead them; tell them to follow you.";
+        }
         if (intent.find() != null && !ResourceFinder.hasJob(player.getUUID())) {
             ResourceFinder.start(player, maelity, intent.find(), intent.guide(), lang);
             note = "You are already searching for '" + intent.find().id() + "' using the world seed; the result will come in a moment.";
         }
-        ask(player, maelity, text, lang, note, fallbackFor(intent, lang));
+        String fb = guideNow ? ("es".equals(lang) ? "¡Sígueme, te llevo!" : "Follow me, I'll take you there!") : fallbackFor(intent, lang);
+        ask(player, maelity, text, lang, note, fb);
     }
 
     /** Evento del juego narrado por Maelity (saludo, resultado de busqueda...). */
@@ -162,6 +171,7 @@ public final class MaelityBrain {
             case "follow" -> maelity.setStay(false);
             case "stay" -> maelity.setStay(true);
             case "hit_player" -> maelity.requestHit(false);
+            case "guide" -> { if (r.find() == null && maelity.getGuideTarget() == null) maelity.startGuiding(); }
             case "defend" -> maelity.commandDefend();
             case "flee" -> maelity.commandFlee();
             default -> { }

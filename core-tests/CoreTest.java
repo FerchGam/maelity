@@ -95,6 +95,14 @@ public class CoreTest {
             catch (Exception ex) { check(ex.getCause() instanceof BackendClient.BackendException b && b.status == 401, "token incorrecto -> 401"); }
         }
 
+
+        // ---- aceptar que te guie
+        check(IntentParser.isYes("sí"), "'sí' es afirmativo");
+        check(IntentParser.isYes("Sí, llévame"), "'sí, llévame' es afirmativo");
+        check(IntentParser.isYes("yes please"), "'yes please' es afirmativo");
+        check(!IntentParser.isYes("no, todavía no"), "'no, todavía no' no es afirmativo");
+        check(IntentParser.wantsGuide("guíame"), "'guíame' pide guía");
+        check(!IntentParser.isYes("así está bien la casa"), "'así' no cuenta como 'sí'");
         // ---- regalos
         {
             long[] none = {0, 0, 0};

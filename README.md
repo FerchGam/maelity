@@ -33,6 +33,10 @@ La voz de Maelity usa las voces que ya trae Windows (gratis, sin internet). Para
   o, si está muy enfadada contigo, te deja solo salvo que estés a punto de morir. También puedes decirle "ataca" o "huye". No muere en combate: huye antes.
 - **Atenta a todo:** conoce tu vida, comida, armadura, inventario, monstruos cerca y lo que pasó hace poco; avisa cuando cae la noche,
   te da pan si tienes hambre, antorchas si estás a oscuras bajo tierra, y comenta por su cuenta.
+- **Apariencia (Mods > Maelity > Config > Apariencia):** forma *cubo* o *pelotita*, 5 caras (clásica, tierna, gatito, robot, mínima)
+  y un color por cada humor (amigable amarillo, juguetona rosa, sarcástica verde menta, protectora azul, misteriosa morado,
+  enfadada rojo). El color cambia suavemente y suelta partículas al cambiar de humor. Puedes poner tus propios colores (#RRGGBB)
+  o un color fijo.
 - Todo se ajusta en **Mods > Maelity > Config > Comportamiento**.
 
 ## 3. Usar

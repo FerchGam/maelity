@@ -309,9 +309,10 @@ public final class ResourceFinder {
                 note = "Search finished: found '" + t.id() + "' about " + dist + " blocks to the " + dir
                         + (r.hasY() ? ", at height Y=" + pos.getY() : "") + ". Tell the player the direction and distance"
                         + (reveal ? " (exact coordinates are shown in chat)." : " (do not give exact coordinates).")
-                        + (guide ? " You will lead them there." : " Offer to guide them if they want.");
+                        + (guide ? " You are now leading them there: tell them to follow you." : " Offer to guide them there; if they say yes, use action \"guide\".");
                 if (reveal) MaelityBrain.tellPlayer(p, "§e[Maelity]§r " + fact);
-                if (guide) maelity.setGuideTarget(pos);
+                maelity.setLastFound(pos, name);
+                if (guide) maelity.startGuiding();
             }
             case NOT_FOUND -> {
                 String hint = t.bestY().isEmpty() ? "" : (es ? " Suelen abundar cerca de Y=" : " It is usually most common near Y=") + t.bestY() + ".";
