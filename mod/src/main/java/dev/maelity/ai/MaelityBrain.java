@@ -26,7 +26,9 @@ public final class MaelityBrain {
     private static final Gson GSON = new Gson();
     private static final Random RNG = new Random();
 
-    public record Reply(String say, Personality mood, String action, String find) {}
+    public record Reply(String say, Personality mood, String action, String find, String giveItem, int giveCount) {
+        public Reply(String say, Personality mood, String action, String find) { this(say, mood, action, find, null, 0); }
+    }
 
     // ------------------------------------------------------------------ entrada del jugador
 
@@ -121,7 +123,21 @@ public final class MaelityBrain {
             JsonObject o = JsonParser.parseString(c).getAsJsonObject();
             String say = str(o, "say");
             if (say == null || say.isBlank()) throw new IllegalStateException("no say");
-            return new Reply(clean(say), Personality.fromId(str(o, "mood")), orDefault(str(o, "action"), "none"), str(o, "find"));
+            String giveItem = null;
+            int giveCount = 0;
+            JsonElement g = o.get("give");
+            if (g != null && g.isJsonObject()) {
+                giveItem = str(g.getAsJsonObject(), "item");
+                JsonElement cnt = g.getAsJsonObject().get("count");
+                try { giveCount = cnt == null || cnt.isJsonNull() ? 1 : cnt.getAsInt(); } catch (Exception ex) { giveCount = 1; }
+            } else if (g != null && g.isJsonPrimitive()) {
+                giveItem = g.getAsString();
+                giveCount = 1;
+            }
+            if (giveItem != null && (giveItem.isBlank() || giveItem.equalsIgnoreCase("null") || giveItem.equalsIgnoreCase("none"))) giveItem = null;
+            String find = str(o, "find");
+            if (find != null && (find.isBlank() || find.equalsIgnoreCase("null"))) find = null;
+            return new Reply(clean(say), Personality.fromId(str(o, "mood")), orDefault(str(o, "action"), "none"), find, giveItem, giveCount);
         } catch (Exception e) {
             return new Reply(clean(c), null, "none", null);  // el modelo hablo sin JSON: igual lo usamos
         }
@@ -146,13 +162,21 @@ public final class MaelityBrain {
             case "follow" -> maelity.setStay(false);
             case "stay" -> maelity.setStay(true);
             case "hit_player" -> maelity.requestHit(false);
+            case "defend" -> maelity.commandDefend();
+            case "flee" -> maelity.commandFlee();
             default -> { }
+        }
+        String refusal = null;
+        if (r.giveItem() != null) {
+            Gifts.Result g = Gifts.give(player, maelity, r.giveItem(), r.giveCount());
+            if (!g.given()) refusal = Gifts.refusalLine(g, lang);
         }
         if (r.find() != null && !ResourceFinder.hasJob(player.getUUID())) {
             TargetCatalog.Entry e = TargetCatalog.byId(r.find());
             if (e != null) ResourceFinder.start(player, maelity, e, "guide".equals(r.action()), lang);
         }
         PacketDistributor.sendToPlayer(player, new SayPayload(maelity.getId(), r.say(), maelity.mood().get().id, lang));
+        if (refusal != null) tellPlayer(player, refusal);
     }
 
     // ------------------------------------------------------------------ textos sin internet

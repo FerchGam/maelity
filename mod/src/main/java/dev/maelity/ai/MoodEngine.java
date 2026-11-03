@@ -17,23 +17,34 @@ public final class MoodEngine {
 
     private Personality current = Personality.FRIENDLY;
     private float anger = 0f;          // 0..100
+    private float affection = 50f;     // 0..100: cuanto le cae bien el jugador (sube con amabilidad, baja con golpes)
     private long lockedUntil = 0;      // ticks de juego: no se cambia salvo fuerza mayor
     private long lastChange = 0;
     private long lastTalk = 0;
 
     public Personality get() { return current; }
     public float anger() { return anger; }
+    public float affection() { return affection; }
+    public long lastTalk() { return lastTalk; }
 
     public void load(Personality p, float anger) {
         this.current = p == null ? Personality.FRIENDLY : p;
         this.anger = anger;
     }
 
-    public void onPlayerTalk(long now) { lastTalk = now; }
+    public void load(Personality p, float anger, float affection) {
+        load(p, anger);
+        this.affection = Math.max(0f, Math.min(100f, affection));
+    }
+
+    public void addAffection(float a) { affection = Math.max(0f, Math.min(100f, affection + a)); }
+
+    public void onPlayerTalk(long now) { lastTalk = now; addAffection(0.5f); }
 
     /** El jugador le pego a Maelity. */
     public void onHurtByOwner(long now) {
         anger = Math.min(100f, anger + 35f);
+        addAffection(-12f);
         if (anger >= 70f) force(Personality.ANGRY, now, 20 * 30);
     }
 
@@ -43,11 +54,12 @@ public final class MoodEngine {
     /** El jugador la insulto: cada insulto suma; si se acumula mucho se enfada de verdad (sin esperar al modelo). */
     public void onInsulted(long now) {
         addAnger(25f);
+        addAffection(-8f);
         if (anger >= 70f) force(Personality.ANGRY, now, 20 * 30);
     }
 
     /** El jugador fue amable: se le baja el enfado. */
-    public void onKindness() { addAnger(-15f); }
+    public void onKindness() { addAnger(-15f); addAffection(6f); }
 
     /** Cambio propuesto por el modelo. Devuelve true si se aplico. */
     public boolean suggest(Personality wanted, long now) {

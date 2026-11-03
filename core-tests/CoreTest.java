@@ -1,3 +1,5 @@
+import dev.maelity.core.GiftPolicy;
+import dev.maelity.core.CombatPolicy;
 import dev.maelity.core.*;
 
 import javax.sound.sampled.AudioInputStream;
@@ -91,6 +93,56 @@ public class CoreTest {
             }
             try { new BackendClient(a[0], "mal").chat("[]", "es").get(); check(false, "token incorrecto rechazado"); }
             catch (Exception ex) { check(ex.getCause() instanceof BackendClient.BackendException b && b.status == 401, "token incorrecto -> 401"); }
+        }
+
+        // ---- regalos
+        {
+            long[] none = {0, 0, 0};
+            check(GiftPolicy.tierOf("diamond") == GiftPolicy.Tier.RARE, "diamante = raro");
+            check(GiftPolicy.tierOf("minecraft:netherite_sword") == GiftPolicy.Tier.EPIC, "espada de netherita = epico");
+            check(GiftPolicy.tierOf("Bread") == GiftPolicy.Tier.COMMON, "pan = comun");
+            check(GiftPolicy.tierOf("minecraft:command_block") == GiftPolicy.Tier.BANNED, "bloque de comandos prohibido");
+            check(GiftPolicy.tierOf("zombie_spawn_egg") == GiftPolicy.Tier.BANNED, "huevos de spawn prohibidos");
+            var d = GiftPolicy.decide("friendly", 0, 50, "bread", 5, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(d.allowed() && d.count() == 5 && d.itemId().equals("minecraft:bread"), "amigable regala pan");
+            d = GiftPolicy.decide("angry", 80, 50, "bread", 5, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(!d.allowed() && d.reason().equals("angry"), "enfadada no regala");
+            d = GiftPolicy.decide("friendly", 0, 50, "netherite_ingot", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(!d.allowed() && d.reason().equals("too_valuable"), "sin carino alto no da netherita");
+            d = GiftPolicy.decide("friendly", 0, 90, "netherite_ingot", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(d.allowed(), "con mucho carino si da netherita");
+            d = GiftPolicy.decide("friendly", 0, 90, "netherite_ingot", 1, GiftPolicy.Tier.RARE, false, none, 0.9);
+            check(!d.allowed(), "la config limita el nivel maximo");
+            d = GiftPolicy.decide("friendly", 0, 50, "diamond", 1, GiftPolicy.Tier.EPIC, false, new long[]{0, 500, 0}, 0.9);
+            check(!d.allowed() && d.reason().equals("cooldown"), "espera entre regalos raros");
+            d = GiftPolicy.decide("protective", 0, 20, "totem_of_undying", 1, GiftPolicy.Tier.EPIC, true, none, 0.9);
+            check(d.allowed(), "protectora da totem si estas en peligro");
+            d = GiftPolicy.decide("protective", 0, 20, "totem_of_undying", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(!d.allowed(), "protectora no da totem sin peligro");
+            d = GiftPolicy.decide("sarcastic", 0, 50, "diamond", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(!d.allowed(), "sarcastica no da diamantes");
+            d = GiftPolicy.decide("sarcastic", 0, 50, "cobblestone", 64, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(d.allowed() && d.count() == 8, "sarcastica da poco");
+            d = GiftPolicy.decide("playful", 0, 50, "bread", 3, GiftPolicy.Tier.EPIC, false, none, 0.1);
+            check(d.allowed() && d.reason().equals("prank") && !d.itemId().equals("minecraft:bread"), "juguetona a veces hace bromas");
+            d = GiftPolicy.decide("angry", 50, 50, "golden_apple", 1, GiftPolicy.Tier.EPIC, true, none, 0.9);
+            check(!d.allowed(), "enfadada: la manzana dorada (raro) sigue fuera de su alcance");
+            d = GiftPolicy.decide("angry", 50, 50, "bread", 2, GiftPolicy.Tier.EPIC, true, none, 0.9);
+            check(d.allowed(), "enfadada pero te ve en peligro: te da pan");
+        }
+        // ---- combate
+        {
+            check(CombatPolicy.decide("friendly", 0, 1f, 1f, 2, false, false, true) == CombatPolicy.Choice.DEFEND, "amigable defiende");
+            check(CombatPolicy.decide("friendly", 0, 1f, 1f, 1, true, false, true) == CombatPolicy.Choice.FLEE, "creeper -> huye");
+            check(CombatPolicy.decide("protective", 0, 1f, 1f, 1, false, true, true) == CombatPolicy.Choice.FLEE, "jefe -> huye");
+            check(CombatPolicy.decide("friendly", 0, 0.2f, 1f, 1, false, false, true) == CombatPolicy.Choice.FLEE, "muy herida -> huye");
+            check(CombatPolicy.decide("angry", 80, 1f, 0.9f, 1, false, false, true) == CombatPolicy.Choice.IGNORE, "enfadada te deja solo");
+            check(CombatPolicy.decide("angry", 80, 1f, 0.3f, 1, false, false, true) == CombatPolicy.Choice.DEFEND, "enfadada te salva si casi mueres");
+            check(CombatPolicy.decide("mysterious", 0, 1f, 1f, 4, false, false, true) == CombatPolicy.Choice.FLEE, "misteriosa huye de grupos");
+            check(CombatPolicy.decide("friendly", 0, 1f, 1f, 7, false, false, true) == CombatPolicy.Choice.FLEE, "demasiados -> huye");
+            check(CombatPolicy.decide("protective", 0, 1f, 1f, 7, false, false, true) == CombatPolicy.Choice.DEFEND, "protectora aguanta mas");
+            check(CombatPolicy.decide("friendly", 0, 1f, 1f, 2, false, false, false) == CombatPolicy.Choice.WARN, "defensa desactivada -> avisa");
+            check(CombatPolicy.decide("friendly", 0, 1f, 1f, 0, false, false, true) == CombatPolicy.Choice.IGNORE, "sin enemigos -> nada");
         }
         System.out.println(fails == 0 ? "CORE TESTS OK" : fails + " FAILED");
         System.exit(fails == 0 ? 0 : 1);

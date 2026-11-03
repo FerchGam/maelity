@@ -21,5 +21,11 @@
   "maelity.configuration.chunksPerTick": "Chunks por tick",
   "maelity.configuration.language": "Idioma (es / en)",
   "maelity.configuration.voiceEnabled": "Voz activada",
-  "maelity.configuration.volume": "Volumen de la voz"
+  "maelity.configuration.volume": "Volumen de la voz",
+  "maelity.configuration.behavior": "Comportamiento",
+  "maelity.configuration.behavior.button": "Comportamiento",
+  "maelity.configuration.giftsEnabled": "Puede regalarte cosas",
+  "maelity.configuration.giftsMaxTier": "Regalo más valioso (common / rare / epic)",
+  "maelity.configuration.defendEnabled": "Te defiende de monstruos",
+  "maelity.configuration.proactiveComments": "Comenta por su cuenta"
 }

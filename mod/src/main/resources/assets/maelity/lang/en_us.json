@@ -21,5 +21,11 @@
   "maelity.configuration.chunksPerTick": "Chunks per tick",
   "maelity.configuration.language": "Language (es / en)",
   "maelity.configuration.voiceEnabled": "Voice enabled",
-  "maelity.configuration.volume": "Voice volume"
+  "maelity.configuration.volume": "Voice volume",
+  "maelity.configuration.behavior": "Behavior",
+  "maelity.configuration.behavior.button": "Behavior",
+  "maelity.configuration.giftsEnabled": "Can give you items",
+  "maelity.configuration.giftsMaxTier": "Most valuable gift (common / rare / epic)",
+  "maelity.configuration.defendEnabled": "Defends you from monsters",
+  "maelity.configuration.proactiveComments": "Comments on her own"
 }

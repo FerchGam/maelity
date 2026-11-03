@@ -33,6 +33,10 @@ public final class MaelityConfig {
         public final ModConfigSpec.BooleanValue revealCoordinates;
         public final ModConfigSpec.IntValue scanRadiusChunks;
         public final ModConfigSpec.IntValue chunksPerTick;
+        public final ModConfigSpec.BooleanValue giftsEnabled;
+        public final ModConfigSpec.ConfigValue<String> giftsMaxTier;
+        public final ModConfigSpec.BooleanValue defendEnabled;
+        public final ModConfigSpec.BooleanValue proactiveComments;
 
         Common(ModConfigSpec.Builder b) {
             b.translation(T + "ai").push("ai");
@@ -63,6 +67,20 @@ public final class MaelityConfig {
             chunksPerTick = b.comment("Chunks generados/escaneados por tick. Mas = mas rapido pero mas lag.")
                     .translation(T + "chunksPerTick")
                     .defineInRange("chunksPerTick", 1, 1, 4);
+            b.pop();
+            b.translation(T + "behavior").push("behavior");
+            giftsEnabled = b.comment("Maelity puede regalarte objetos (segun su humor y su carino por ti).")
+                    .translation(T + "giftsEnabled")
+                    .define("giftsEnabled", true);
+            giftsMaxTier = b.comment("Lo mas valioso que puede regalar: common | rare | epic")
+                    .translation(T + "giftsMaxTier")
+                    .defineInList("giftsMaxTier", "epic", new ArrayList<>(List.of("common", "rare", "epic")));
+            defendEnabled = b.comment("Maelity te defiende de los monstruos (o huye, segun la situacion y su humor).")
+                    .translation(T + "defendEnabled")
+                    .define("defendEnabled", true);
+            proactiveComments = b.comment("Maelity comenta por su cuenta (cae la noche, tienes hambre, estas herido...).")
+                    .translation(T + "proactiveComments")
+                    .define("proactiveComments", true);
             b.pop();
         }
     }

@@ -32,8 +32,8 @@ public final class ServerEvents {
     @SubscribeEvent
     public static void onChat(ServerChatEvent e) {
         String raw = e.getRawText().trim();
-        if (raw.length() > 5 && raw.regionMatches(true, 0, "maelity", 0, 5)) {
-            String text = raw.substring(5).replaceFirst("^[\\s,:;!¡]+", "");
+        if (raw.length() > 7 && raw.regionMatches(true, 0, "maelity", 0, 7)) {
+            String text = raw.substring(7).replaceFirst("^[\\s,:;!¡]+", "");
             ServerPlayer sp = e.getPlayer();
             if (!text.isEmpty()) {
                 sp.getServer().execute(() -> ServerHandlers.ask(sp, text, MaelityEntity.clientLang(sp)));
