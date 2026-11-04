@@ -7,7 +7,7 @@ import java.util.Locale;
 
 /** Opciones seleccionables de la configuracion (botones que cambian al hacer clic, sin escribir nada). */
 public final class Options {
-    private static Component name(String type, Enum<?> e) {
+    static Component label(String type, Enum<?> e) {
         return Component.translatable("maelity.configuration.enum." + type + "." + e.name().toLowerCase(Locale.ROOT));
     }
 
@@ -15,29 +15,29 @@ public final class Options {
         ES, EN;
         public String id() { return this == ES ? "es" : "en"; }
         public static Lang of(String s) { return "es".equalsIgnoreCase(s) ? ES : EN; }
-        @Override public Component getTranslatedName() { return name("lang", this); }
+        @Override public Component getTranslatedName() { return Options.label("lang", this); }
     }
 
     public enum Shape implements TranslatableEnum {
         CUBE, BALL;
-        @Override public Component getTranslatedName() { return name("shape", this); }
+        @Override public Component getTranslatedName() { return Options.label("shape", this); }
     }
 
     public enum FaceStyle implements TranslatableEnum {
         CLASSIC, CUTE, CAT, ROBOT, MINIMAL;
         public String id() { return name().toLowerCase(Locale.ROOT); }
-        @Override public Component getTranslatedName() { return name("face", this); }
+        @Override public Component getTranslatedName() { return Options.label("face", this); }
     }
 
     public enum VoiceEngine implements TranslatableEnum {
         PIPER, ELEVENLABS, FISH, WINDOWS;
         public String id() { return name().toLowerCase(Locale.ROOT); }
-        @Override public Component getTranslatedName() { return name("engine", this); }
+        @Override public Component getTranslatedName() { return Options.label("engine", this); }
     }
 
     public enum Gender implements TranslatableEnum {
         FEMALE, MALE;
-        @Override public Component getTranslatedName() { return name("gender", this); }
+        @Override public Component getTranslatedName() { return Options.label("gender", this); }
     }
 
     public enum PiperVoiceEs implements TranslatableEnum {
@@ -45,7 +45,7 @@ public final class Options {
         ES_DAVEFX("es_ES-davefx-medium"), ES_SHARVARD("es_ES-sharvard-medium");
         public final String key;
         PiperVoiceEs(String key) { this.key = key; }
-        @Override public Component getTranslatedName() { return name("piper_es", this); }
+        @Override public Component getTranslatedName() { return Options.label("piper_es", this); }
     }
 
     public enum PiperVoiceEn implements TranslatableEnum {
@@ -53,24 +53,24 @@ public final class Options {
         US_JOE("en_US-joe-medium"), GB_ALBA("en_GB-alba-medium");
         public final String key;
         PiperVoiceEn(String key) { this.key = key; }
-        @Override public Component getTranslatedName() { return name("piper_en", this); }
+        @Override public Component getTranslatedName() { return Options.label("piper_en", this); }
     }
 
     public enum FishModel implements TranslatableEnum {
         FREE("s2.1-pro-free"), PRO("s2.1-pro");
         public final String id;
         FishModel(String id) { this.id = id; }
-        @Override public Component getTranslatedName() { return name("fish_model", this); }
+        @Override public Component getTranslatedName() { return Options.label("fish_model", this); }
     }
 
     public enum FollowStyle implements TranslatableEnum {
         CALM, BEHIND;
-        @Override public Component getTranslatedName() { return name("follow", this); }
+        @Override public Component getTranslatedName() { return Options.label("follow", this); }
     }
 
     public enum GiftTier implements TranslatableEnum {
         COMMON, RARE, EPIC, ADMIN;
-        @Override public Component getTranslatedName() { return name("tier", this); }
+        @Override public Component getTranslatedName() { return Options.label("tier", this); }
     }
 
     public enum Color implements TranslatableEnum {
@@ -79,7 +79,7 @@ public final class Options {
         BROWN(0x8B5A2B), WHITE(0xF2F2F2), GRAY(0x8A8A8A), BLACK(0x2A2A2A);
         public final int rgb;
         Color(int rgb) { this.rgb = rgb; }
-        @Override public Component getTranslatedName() { return name("color", this); }
+        @Override public Component getTranslatedName() { return Options.label("color", this); }
     }
 
     private Options() {}
