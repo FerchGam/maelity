@@ -98,6 +98,23 @@ public class CoreTest {
 
 
 
+
+        // ---- edad y groserias
+        {
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("age");
+            java.nio.file.Path lock = dir.resolve("age.lock");
+            check(!AgeGate.profanityAllowed(lock, 0, true), "sin edad no hay groserias");
+            check(!AgeGate.profanityAllowed(lock, 12, true), "12 anos: bloqueado");
+            check(!AgeGate.profanityAllowed(lock, 30, true), "despues de poner 12, cambiar a 30 no sirve");
+            check(AgeGate.lockedAge(lock, 30) == 12, "la primera edad queda guardada");
+            java.nio.file.Path lock2 = dir.resolve("age2.lock");
+            check(AgeGate.profanityAllowed(lock2, 25, true), "25 anos y activado: permitido");
+            check(!AgeGate.profanityAllowed(lock2, 25, false), "25 anos sin activar: no");
+            check(LanguageFilter.censor("eres un pendejo, joder").equals("eres un p******, j****"), "tapa groserias");
+            check(LanguageFilter.censor("Cabrón inútil").equals("C***** inútil"), "tapa con acentos y deja 'inútil'");
+            check(LanguageFilter.censor("what the fuck").equals("what the f***"), "tapa en ingles");
+            check(LanguageFilter.censor("computadora y escondite").equals("computadora y escondite"), "no tapa palabras normales");
+        }
         // ---- memoria y voces
         check("mi casa esta junto al rio".equals(IntentParser.rememberThat("Recuerda que mi casa está junto al río")), "'recuerda que...' guarda el dato");
         check(IntentParser.rememberThat("¿recuerdas cuando casi muero?") == null, "'¿recuerdas...?' no es una orden de recordar");
@@ -183,12 +200,21 @@ public class CoreTest {
             check(GiftPolicy.tierOf("diamond") == GiftPolicy.Tier.RARE, "diamante = raro");
             check(GiftPolicy.tierOf("minecraft:netherite_sword") == GiftPolicy.Tier.EPIC, "espada de netherita = epico");
             check(GiftPolicy.tierOf("Bread") == GiftPolicy.Tier.COMMON, "pan = comun");
-            check(GiftPolicy.tierOf("minecraft:command_block") == GiftPolicy.Tier.BANNED, "bloque de comandos prohibido");
-            check(GiftPolicy.tierOf("zombie_spawn_egg") == GiftPolicy.Tier.BANNED, "huevos de spawn prohibidos");
+            check(GiftPolicy.tierOf("minecraft:command_block") == GiftPolicy.Tier.ADMIN, "bloque de comandos = admin");
+            check(GiftPolicy.tierOf("zombie_spawn_egg") == GiftPolicy.Tier.ADMIN, "huevos de spawn = admin");
+            check(GiftPolicy.tierOf("air") == GiftPolicy.Tier.BANNED, "aire no se regala");
             var d = GiftPolicy.decide("friendly", 0, 50, "bread", 5, GiftPolicy.Tier.EPIC, false, none, 0.9);
             check(d.allowed() && d.count() == 5 && d.itemId().equals("minecraft:bread"), "amigable regala pan");
-            d = GiftPolicy.decide("angry", 80, 50, "bread", 5, GiftPolicy.Tier.EPIC, false, none, 0.9);
-            check(!d.allowed() && d.reason().equals("angry"), "enfadada no regala");
+            d = GiftPolicy.decide("angry", 90, 50, "bread", 5, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(!d.allowed() && d.reason().equals("angry"), "furiosa no regala");
+            d = GiftPolicy.decide("angry", 60, 50, "bread", 10, GiftPolicy.Tier.EPIC, false, none, 0.9);
+            check(d.allowed() && d.reason().equals("grudging") && d.count() == 4, "enfadada da poco y de mala gana");
+            d = GiftPolicy.decide("friendly", 0, 90, "command_block", 1, GiftPolicy.Tier.ADMIN, false, new long[]{0, 0, 0, 0}, 0.9);
+            check(d.allowed(), "con muchisimo carino da un bloque de comandos");
+            d = GiftPolicy.decide("friendly", 0, 60, "command_block", 1, GiftPolicy.Tier.ADMIN, false, new long[]{0, 0, 0, 0}, 0.9);
+            check(!d.allowed(), "sin carino suficiente no da bloques de comandos");
+            d = GiftPolicy.decide("friendly", 0, 90, "command_block", 1, GiftPolicy.Tier.EPIC, false, new long[]{0, 0, 0, 0}, 0.9);
+            check(!d.allowed(), "la config puede prohibir objetos admin");
             d = GiftPolicy.decide("friendly", 0, 50, "netherite_ingot", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);
             check(!d.allowed() && d.reason().equals("too_valuable"), "sin carino alto no da netherita");
             d = GiftPolicy.decide("friendly", 0, 90, "netherite_ingot", 1, GiftPolicy.Tier.EPIC, false, none, 0.9);

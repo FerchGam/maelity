@@ -16,7 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 /**
- * Dos formas (cubo o pelotita) con textura blanca que se tine con el color del humor,
+ * Dos formas (cubo o pelota lisa de verdad, ver SphereMesh) con textura blanca que se tine con el color del humor,
  * y una "mascara" plana delante con la cara (se dibuja aparte, sin tenir).
  */
 public class MaelityModel extends EntityModel<MaelityEntity> {
@@ -77,10 +77,25 @@ public class MaelityModel extends EntityModel<MaelityEntity> {
 
     @Override
     public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color) {
-        (useBall ? ball : cube).render(poseStack, buffer, packedLight, packedOverlay, tint);
+        if (!useBall) {
+            cube.render(poseStack, buffer, packedLight, packedOverlay, tint);
+            return;
+        }
+        // pelota lisa: misma posicion/animacion que el cubo
+        poseStack.pushPose();
+        cube.translateAndRotate(poseStack);
+        SphereMesh.render(poseStack.last(), buffer, 5.4f, packedLight, packedOverlay, tint, false);
+        poseStack.popPose();
     }
 
     public void renderFace(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay) {
-        face.render(poseStack, buffer, packedLight, packedOverlay, 0xFFFFFFFF);
+        if (!useBall) {
+            face.render(poseStack, buffer, packedLight, packedOverlay, 0xFFFFFFFF);
+            return;
+        }
+        poseStack.pushPose();
+        cube.translateAndRotate(poseStack);
+        SphereMesh.render(poseStack.last(), buffer, 5.46f, packedLight, packedOverlay, 0xFFFFFFFF, true);
+        poseStack.popPose();
     }
 }

@@ -23,7 +23,7 @@ public class LanguageScreen extends Screen {
     }
 
     private void choose(String lang) {
-        MaelityConfig.CLIENT.language.set(lang);
+        MaelityConfig.CLIENT.language.set(dev.maelity.Options.Lang.of(lang));
         MaelityConfig.CLIENT.languageChosen.set(true);
         MaelityConfig.CLIENT_SPEC.save();
         this.onClose();

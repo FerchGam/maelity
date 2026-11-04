@@ -54,7 +54,7 @@ public final class ClientGameEvents {
                         .executes(ctx -> {
                             String l = StringArgumentType.getString(ctx, "lang").toLowerCase(Locale.ROOT);
                             if (!l.equals("es") && !l.equals("en")) return 0;
-                            MaelityConfig.CLIENT.language.set(l);
+                            MaelityConfig.CLIENT.language.set(dev.maelity.Options.Lang.of(l));
                             MaelityConfig.CLIENT.languageChosen.set(true);
                             MaelityConfig.CLIENT_SPEC.save();
                             Minecraft.getInstance().gui.getChat().addMessage(

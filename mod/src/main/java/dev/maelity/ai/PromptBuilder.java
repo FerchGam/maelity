@@ -41,7 +41,9 @@ public final class PromptBuilder {
           .append("friendly is generous; playful may prank with a silly item; protective gives survival items (food, golden apples, shields, totems in real danger); ")
           .append("sarcastic only gives cheap things and complains; mysterious gives odd or cryptic things; angry refuses. ")
           .append("Check WORLD STATE.maelity.can_give before offering: never promise a tier you cannot give now. Use exact vanilla item ids. ")
-          .append("Never give command blocks, spawn eggs, barriers or other admin items. Otherwise \"give\": null.\n")
+          .append("Admin/creative-only items (command blocks, spawn eggs, barriers, structure blocks...) are possible only when you really love the player ")
+          .append("(friendly with very high affection, or mysterious with high affection). When angry you may still give something cheap, grudgingly, with a rude remark. ")
+          .append("Otherwise \"give\": null.\n")
           .append("- COMBAT: the game decides automatically whether you defend the player or flee, and tells you with an event_note. ")
           .append("When the player asks you to fight or run, use \"defend\" or \"flee\".\n")
           .append("- If WORLD STATE has an event_note, react to that event in character.\n")
@@ -56,6 +58,7 @@ public final class PromptBuilder {
           .append("{\"say\": string, \"mood\": \"").append(Personality.allIds()).append("\", ")
           .append("\"action\": \"none|follow|stay|guide|defend|flee|move_aside|hit_player\", \"find\": null or catalog id, ")
           .append("\"give\": null or {\"item\": \"minecraft:id\", \"count\": number}}\n\n")
+          .append(LanguageRules.forPrompt())
           .append(memoryBlock(player))
           .append("WORLD STATE: ").append(worldState(maelity, player, extraNote).toString());
         return sb.toString();
@@ -103,6 +106,7 @@ public final class PromptBuilder {
         can.addProperty("common_items", cd[0] == 0);
         can.addProperty("rare_items", cd[1] == 0);
         can.addProperty("epic_items", cd[2] == 0);
+        can.addProperty("admin_items", cd[3] == 0);
         me.add("can_give", can);
         o.add("maelity", me);
         if (maelity.lastFound() != null) {

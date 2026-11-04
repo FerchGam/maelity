@@ -17,7 +17,7 @@ public final class VoiceClient {
     private static volatile boolean busy;           // transcribiendo o esperando respuesta
     private static volatile long busySince;
 
-    public static String lang() { return MaelityConfig.CLIENT.language.get(); }
+    public static String lang() { return MaelityConfig.CLIENT.language.get().id(); }
     public static String tr(String es, String en) { return "es".equals(lang()) ? es : en; }
 
     public static boolean isRecording() { return RECORDER.isRecording(); }

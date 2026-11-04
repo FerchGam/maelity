@@ -199,7 +199,7 @@ public final class MaelityBrain {
             TargetCatalog.Entry e = TargetCatalog.byId(r.find());
             if (e != null) ResourceFinder.start(player, maelity, e, "guide".equals(r.action()), lang);
         }
-        PacketDistributor.sendToPlayer(player, new SayPayload(maelity.getId(), r.say(), maelity.mood().get().id, lang));
+        PacketDistributor.sendToPlayer(player, new SayPayload(maelity.getId(), LanguageRules.clean(r.say()), maelity.mood().get().id, lang));
         if (refusal != null) tellPlayer(player, refusal);
     }
 

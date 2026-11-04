@@ -42,18 +42,18 @@ public final class VoiceEngines {
         return piper;
     }
 
-    private static boolean female() { return !"male".equals(MaelityConfig.CLIENT.voiceGender.get()); }
+    private static boolean female() { return MaelityConfig.CLIENT.voiceGender.get() != dev.maelity.Options.Gender.MALE; }
 
     static String piperVoice(String lang) {
         boolean es = "es".equals(lang);
-        String custom = (es ? MaelityConfig.CLIENT.piperVoiceEs : MaelityConfig.CLIENT.piperVoiceEn).get().trim();
+        String custom = es ? MaelityConfig.CLIENT.piperVoiceEs.get().key : MaelityConfig.CLIENT.piperVoiceEn.get().key;
         if (PiperTts.validVoice(custom)) return custom;
         if (es) return female() ? "es_MX-claude-high" : "es_MX-ald-medium";
         return female() ? "en_US-amy-medium" : "en_US-ryan-medium";
     }
 
     public static CompletableFuture<byte[]> synth(String text, String lang, String mood) {
-        String engine = MaelityConfig.CLIENT.voiceEngine.get();
+        String engine = MaelityConfig.CLIENT.voiceEngine.get().id();
         CompletableFuture<byte[]> f = switch (engine) {
             case "piper" -> CompletableFuture.supplyAsync(() -> {
                 try {
@@ -71,7 +71,7 @@ public final class VoiceEngines {
                 yield CloudTts.elevenLabs(HTTP, MaelityConfig.CLIENT.elevenApiKey.get(), id, text);
             }
             case "fish" -> CloudTts.fishAudio(HTTP, MaelityConfig.CLIENT.fishApiKey.get(),
-                    MaelityConfig.CLIENT.fishModel.get(), MaelityConfig.CLIENT.fishVoiceId.get(), text);
+                    MaelityConfig.CLIENT.fishModel.get().id, MaelityConfig.CLIENT.fishVoiceId.get(), text);
             default -> WindowsTts.synth(text, lang, mood);
         };
         if ("windows".equals(engine)) return f;

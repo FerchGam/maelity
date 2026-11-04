@@ -15,12 +15,12 @@ public final class MaelityLook {
     private static final int[] DEFAULTS = {0xFFD60A, 0xFF8FD8, 0x7FD4A8, 0x3D8BFF, 0x8A5CD6, 0xE8402A};
 
     public static boolean ball() {
-        try { return "ball".equals(MaelityConfig.CLIENT.shape.get()); } catch (Exception e) { return false; }
+        try { return MaelityConfig.CLIENT.shape.get() == dev.maelity.Options.Shape.BALL; } catch (Exception e) { return false; }
     }
 
     public static String faceStyle() {
         try {
-            String s = MaelityConfig.CLIENT.faceStyle.get();
+            String s = MaelityConfig.CLIENT.faceStyle.get().id();
             return STYLES.contains(s) ? s : "classic";
         } catch (Exception e) {
             return "classic";
@@ -36,9 +36,9 @@ public final class MaelityLook {
     /** Color RGB (0xRRGGBB) para ese humor. */
     public static int colorFor(Personality p) {
         try {
-            if (!MaelityConfig.CLIENT.moodColors.get()) return parse(MaelityConfig.CLIENT.singleColor.get(), DEFAULTS[0]);
+            if (!MaelityConfig.CLIENT.moodColors.get()) return MaelityConfig.CLIENT.singleColor.get().rgb;
             var v = MaelityConfig.CLIENT.moodColor.get(p.id);
-            return v == null ? DEFAULTS[p.ordinal()] : parse(v.get(), DEFAULTS[p.ordinal()]);
+            return v == null ? DEFAULTS[p.ordinal()] : v.get().rgb;
         } catch (Exception e) {
             return DEFAULTS[p.ordinal() % DEFAULTS.length];
         }

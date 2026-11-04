@@ -95,9 +95,10 @@ public class MaelityEntity extends PathfinderMob {
     // --- apartarse cuando estorba
     private long asideUntil;
     private long lookedAtSince = -1;
+    private long lastAutoAside = Long.MIN_VALUE / 4;
 
     // --- regalos
-    private final long[] giftLast = {Long.MIN_VALUE / 4, Long.MIN_VALUE / 4, Long.MIN_VALUE / 4};
+    private final long[] giftLast = {Long.MIN_VALUE / 4, Long.MIN_VALUE / 4, Long.MIN_VALUE / 4, Long.MIN_VALUE / 4};
 
     // --- memoria de lo que ha pasado (para que la IA tenga contexto)
     public record GameEvent(long tick, String text) {}
@@ -150,7 +151,8 @@ public class MaelityEntity extends PathfinderMob {
         this.goalSelector.addGoal(2, new MaelityHitGoal(this));
         this.goalSelector.addGoal(2, new MaelityAsideGoal(this));
         this.goalSelector.addGoal(3, new MaelityGuideGoal(this));
-        this.goalSelector.addGoal(4, new MaelityFollowGoal(this, 1.15, 3.5f, 6f));
+        this.goalSelector.addGoal(4, new MaelityFollowGoal(this));
+        this.goalSelector.addGoal(7, new net.minecraft.world.entity.ai.goal.LookAtPlayerGoal(this, Player.class, 10f, 1.0f));   // quieta te mira a la cara
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
     }
 
@@ -591,7 +593,8 @@ public class MaelityEntity extends PathfinderMob {
 
     private void checkInTheWay(long now) {
         Player o = getOwner();
-        if (o == null || o.level() != level() || isMovingAside() || combatTarget != null) { lookedAtSince = -1; return; }
+        if (!MaelityConfig.COMMON.autoMoveAside.get()) { lookedAtSince = -1; return; }
+        if (o == null || o.level() != level() || isMovingAside() || combatTarget != null || now - lastAutoAside < 20 * 15) { lookedAtSince = -1; return; }
         boolean block = o.getMainHandItem().getItem() instanceof BlockItem || o.getOffhandItem().getItem() instanceof BlockItem;
         double d2 = distanceToSqr(o);
         if (!block || d2 > 6 * 6) { lookedAtSince = -1; return; }
@@ -599,7 +602,7 @@ public class MaelityEntity extends PathfinderMob {
         Vec3 to = getBoundingBox().getCenter().subtract(o.getEyePosition()).normalize();
         if (look.dot(to) > 0.94) {                      // la estas mirando de frente (~20 grados)
             if (lookedAtSince < 0) lookedAtSince = now;
-            else if (now - lookedAtSince >= 10) { moveAside(); lookedAtSince = -1; }
+            else if (now - lookedAtSince >= 40) { moveAside(); lastAutoAside = now; lookedAtSince = -1; }
         } else {
             lookedAtSince = -1;
         }

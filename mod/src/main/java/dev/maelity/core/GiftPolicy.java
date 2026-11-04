@@ -8,20 +8,22 @@ import java.util.Set;
  * y cuanto hace que regalo algo de ese nivel. Java puro (se prueba sin Minecraft).
  */
 public final class GiftPolicy {
-    public enum Tier { COMMON, RARE, EPIC, BANNED }
+    public enum Tier { COMMON, RARE, EPIC, ADMIN, BANNED }
 
-    /** reason: ok | prank | angry | cooldown | too_valuable | banned | disabled */
+    /** reason: ok | prank | grudging | angry | cooldown | too_valuable | banned | disabled */
     public record Decision(boolean allowed, String itemId, int count, String reason) {}
 
     /** Cooldown por nivel, en ticks (20 ticks = 1 s). */
-    public static final long[] COOLDOWN = {20L * 20, 20L * 60 * 5, 20L * 60 * 30, Long.MAX_VALUE};
+    public static final long[] COOLDOWN = {20L * 20, 20L * 60 * 5, 20L * 60 * 30, 20L * 60 * 30, Long.MAX_VALUE};
 
-    private static final Set<String> BANNED = Set.of(
-            "air", "command_block", "chain_command_block", "repeating_command_block", "command_block_minecart",
+    /** Cosas que ni existen como objeto. */
+    private static final Set<String> BANNED = Set.of("air", "end_gateway", "end_portal", "nether_portal", "moving_piston");
+    /** Objetos de creativo/comandos: solo con mucho carino (y si la configuracion lo permite). */
+    private static final Set<String> ADMIN = Set.of(
+            "command_block", "chain_command_block", "repeating_command_block", "command_block_minecart",
             "structure_block", "structure_void", "jigsaw", "barrier", "light", "debug_stick", "bedrock",
             "end_portal_frame", "spawner", "trial_spawner", "vault", "knowledge_book", "reinforced_deepslate",
-            "petrified_oak_slab", "farmland", "dirt_path", "frogspawn", "budding_amethyst", "end_gateway", "end_portal",
-            "nether_portal");
+            "petrified_oak_slab", "budding_amethyst", "test_block", "test_instance_block");
     private static final Set<String> EPIC = Set.of(
             "elytra", "totem_of_undying", "enchanted_golden_apple", "nether_star", "beacon", "dragon_egg", "dragon_head",
             "heavy_core", "mace", "trident", "conduit", "heart_of_the_sea", "end_crystal", "diamond_block",
@@ -52,8 +54,9 @@ public final class GiftPolicy {
     public static Tier tierOf(String rawId) {
         String id = normalizeId(rawId);
         String p = path(id);
-        if (p.isEmpty() || BANNED.contains(p) || p.endsWith("_spawn_egg")) return Tier.BANNED;
+        if (p.isEmpty() || BANNED.contains(p)) return Tier.BANNED;
         if (!id.startsWith("minecraft:")) return Tier.RARE;                 // objetos de otros mods: con cuidado
+        if (ADMIN.contains(p) || p.endsWith("_spawn_egg")) return Tier.ADMIN;
         if (EPIC.contains(p) || p.startsWith("netherite_") || p.contains("shulker_box")) return Tier.EPIC;
         if (RARE.contains(p) || p.startsWith("diamond_") || p.startsWith("music_disc_") || p.endsWith("_horse_armor")
                 || p.endsWith("_smithing_template") || p.endsWith("_pottery_sherd")) return Tier.RARE;
@@ -76,14 +79,16 @@ public final class GiftPolicy {
         String m = mood == null ? "friendly" : mood;
         boolean safety = isSafetyItem(id);
 
-        if ("angry".equals(m) && !(playerInDanger && safety && anger < 85f)) return new Decision(false, id, 0, "angry");
+        // enfadada: si esta furiosa no da nada; si no, da algo barato de mala gana (y se queja)
+        boolean angry = "angry".equals(m);
+        if (angry && anger >= 85f && !(playerInDanger && safety)) return new Decision(false, id, 0, "angry");
 
         Tier moodMax = switch (m) {
-            case "friendly" -> affection >= 75f ? Tier.EPIC : Tier.RARE;
+            case "friendly" -> affection >= 85f ? Tier.ADMIN : affection >= 75f ? Tier.EPIC : Tier.RARE;
             case "playful" -> Tier.RARE;
             case "protective" -> (playerInDanger && safety) ? Tier.EPIC : Tier.RARE;
-            case "mysterious" -> affection >= 40f ? Tier.RARE : Tier.COMMON;
-            default -> Tier.COMMON;                                           // sarcastic, angry (en peligro)
+            case "mysterious" -> affection >= 70f ? Tier.ADMIN : affection >= 40f ? Tier.RARE : Tier.COMMON;
+            default -> Tier.COMMON;                                           // sarcastic, angry
         };
         if (t.ordinal() > moodMax.ordinal()) return new Decision(false, id, 0, "too_valuable");
         if (cooldownLeft != null && t.ordinal() < cooldownLeft.length && cooldownLeft[t.ordinal()] > 0
@@ -92,7 +97,7 @@ public final class GiftPolicy {
         }
 
         int cap = switch (t) {
-            case COMMON -> "sarcastic".equals(m) ? 8 : 32;
+            case COMMON -> angry ? 4 : "sarcastic".equals(m) ? 8 : 32;
             case RARE -> "friendly".equals(m) && affection >= 60f ? 3 : 1;
             default -> 1;
         };
@@ -101,7 +106,7 @@ public final class GiftPolicy {
         if ("playful".equals(m) && !(playerInDanger && safety) && rnd < 0.25) {
             return new Decision(true, PRANKS[(int) (rnd * 4 * PRANKS.length) % PRANKS.length], 1, "prank");
         }
-        return new Decision(true, id, n, "ok");
+        return new Decision(true, id, n, angry ? "grudging" : "ok");
     }
 
     private GiftPolicy() {}

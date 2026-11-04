@@ -13,7 +13,7 @@ public enum Personality {
     MYSTERIOUS("mysterious",
             "Calm, cryptic, unsettling. Speaks slowly with hints and unsettling observations, never cruel."),
     ANGRY("angry",
-            "Irritated and fed up with the player. Curt, sharp, scolding. Still never uses slurs or real insults.");
+            "Irritated and fed up with the player. Curt, sharp, scolding, rude. Follows the LANGUAGE rules for how strong the insults can be.");
 
     public final String id;
     public final String guide;

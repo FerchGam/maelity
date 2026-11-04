@@ -26,12 +26,7 @@ public final class Gifts {
         if (item == null) return new Result(false, rawId, 0, "unknown_item");
 
         long now = maelity.level().getGameTime();
-        GiftPolicy.Tier max;
-        try {
-            max = GiftPolicy.Tier.valueOf(MaelityConfig.COMMON.giftsMaxTier.get().toUpperCase(Locale.ROOT));
-        } catch (Exception e) {
-            max = GiftPolicy.Tier.RARE;
-        }
+        GiftPolicy.Tier max = GiftPolicy.Tier.valueOf(MaelityConfig.COMMON.giftsMaxTier.get().name());
         GiftPolicy.Decision d = GiftPolicy.decide(maelity.mood().get().id, maelity.mood().anger(), maelity.mood().affection(),
                 id, count, max, maelity.ownerInDanger(), maelity.giftCooldownLeft(now), maelity.getRandom().nextDouble());
         if (!d.allowed()) return new Result(false, new ItemStack(item).getHoverName().getString(), 0, d.reason());
