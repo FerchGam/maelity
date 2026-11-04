@@ -24,7 +24,7 @@ class MaelityFollowGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (maelity.isStay()) return false;
+        if (maelity.isStay() || maelity.isMovingAside()) return false;
         Player o = maelity.getOwner();
         if (o == null || o.isSpectator()) return false;
         if (maelity.distanceToSqr(o) < (double) (startDist * startDist)) return false;
@@ -58,7 +58,14 @@ class MaelityFollowGoal extends Goal {
                     owner.getY() + 1.2, owner.getZ() + (maelity.getRandom().nextDouble() - 0.5) * 3);
             maelity.getNavigation().stop();
         } else {
-            maelity.getNavigation().moveTo(owner.getX(), owner.getY() + 1.3, owner.getZ(), speed);
+            // se pone detras y a un lado del jugador (no delante, donde pones bloques)
+            net.minecraft.world.phys.Vec3 look = owner.getViewVector(1f);
+            net.minecraft.world.phys.Vec3 flat = new net.minecraft.world.phys.Vec3(look.x, 0, look.z);
+            if (flat.lengthSqr() < 1e-4) flat = new net.minecraft.world.phys.Vec3(0, 0, 1);
+            flat = flat.normalize();
+            double tx = owner.getX() - flat.x * 1.8 - flat.z * 1.4;
+            double tz = owner.getZ() - flat.z * 1.8 + flat.x * 1.4;
+            maelity.getNavigation().moveTo(tx, owner.getY() + 1.6, tz, speed);
         }
     }
 }

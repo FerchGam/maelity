@@ -19,8 +19,7 @@ El mod habla directo con Groq; no hace falta backend. Cada jugador:
 1. Crea una cuenta gratis en https://console.groq.com y en *API Keys* pulsa **Create API Key** (empieza con `gsk_`).
 2. Pégala en el juego: **Mods > Maelity > Config > IA (conversación) > Clave de Groq**, o escribe `/maelity key gsk_TU_CLAVE`
 3. Listo: mantén **V** para hablar o escribe `maelity, hola`.
-La voz de Maelity usa las voces que ya trae Windows (gratis, sin internet). Para mejor voz en español, instala una voz en
-*Configuración de Windows > Hora e idioma > Voz*. En otros sistemas Maelity responde por texto.
+La voz de Maelity usa Piper por defecto (gratis, sin internet; se descarga sola la primera vez). Mira la sección Voz más abajo.
 (`backend/` es la opcion antigua con servidor propio; ya no se usa.)
 
 
@@ -37,7 +36,35 @@ La voz de Maelity usa las voces que ya trae Windows (gratis, sin internet). Para
   y un color por cada humor (amigable amarillo, juguetona rosa, sarcástica verde menta, protectora azul, misteriosa morado,
   enfadada rojo). El color cambia suavemente y suelta partículas al cambiar de humor. Puedes poner tus propios colores (#RRGGBB)
   o un color fijo.
+- **Memoria que se guarda sola:** cada pocos mensajes Maelity resume lo importante (tu nombre, tus gustos, dónde está tu base,
+  lo que te pasó...) y lo guarda en `saves/<mundo>/maelity/`. Lo recuerda en las siguientes partidas. Di "recuerda que..." para
+  que guarde algo al instante. `/maelity memory` muestra lo que recuerda y `/maelity forget` lo borra.
+- **Voz:** ver la sección *Voces* más abajo.
+- **Luz de noche:** de noche, bajo tierra o con tormenta, Maelity brilla e ilumina a su alrededor (pone un bloque de luz invisible
+  que la sigue y lo quita al moverse). Se apaga en *Config > Comportamiento > Brilla e ilumina de noche*.
+- **No estorba:** vuela detrás y a un lado tuyo. Si la miras de frente con un bloque en la mano, o le dices "muévete" / "apártate",
+  se quita del medio unos segundos.
+- **Una sola Maelity:** si se queda muy atrás (por ejemplo peleando), reaparece a tu lado. `/maelity summon` trae a la que ya tienes
+  aunque esté lejos o en otra dimensión, y si alguna vez aparecen dos, se fusionan solas en una.
 - Todo se ajusta en **Mods > Maelity > Config > Comportamiento**.
+
+## Voces (Mods > Maelity > Config > Voz)
+Primero elige el **motor de voz** y luego si la voz es de **mujer** (`female`) u **hombre** (`male`).
+
+| Motor | Calidad | Costo |
+|---|---|---|
+| **`piper`** (por defecto) | Buena, natural | Gratis siempre y sin internet. La primera vez descarga sola unos 80 MB (programa + voz) en `.minecraft/maelity/piper/` y avisa en el chat. Solo Windows. |
+| **`elevenlabs`** | Muy realista | Plan gratis con unos 10 000 créditos al mes que se renuevan cada mes (unos 10–20 minutos de voz). Pon tu clave de elevenlabs.io en *Clave de ElevenLabs*. |
+| **`fish`** | Muy realista | El modelo `s2.1-pro-free` es gratis solo por tiempo limitado (según Fish Audio, hasta el 30 de noviembre de 2026); después es de pago. Pon tu clave de fish.audio en *Clave de Fish Audio*. |
+| **`windows`** | Robótica | Gratis. Usa las voces que ya trae Windows. |
+
+Si un motor falla (sin clave, sin créditos o sin internet), Maelity avisa en el chat y usa la voz de Windows, así nunca se queda muda.
+
+Opcional:
+- **Piper:** puedes elegir otra voz en *Voz Piper en español / inglés* (por ejemplo `es_AR-daniela-high` o `es_MX-ald-medium`).
+  Vacío = automática según el género.
+- **ElevenLabs:** *ID de voz ElevenLabs* para usar otra voz. Vacío = automática según el género.
+- **Fish Audio:** copia el ID de una voz de su biblioteca en *ID de voz Fish Audio* para elegir mujer u hombre. Vacío = voz por defecto.
 
 ## 3. Usar
 Receta: 4 fragmentos de amatista + 1 ojo de ender (en forma de rombo), o `/maelity summon`.

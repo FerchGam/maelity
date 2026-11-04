@@ -31,7 +31,7 @@ public final class PromptBuilder {
           .append("the game computes the real location from the world seed and will tell the player. ")
           .append("Just acknowledge naturally (e.g. 'Let me look...').\n")
           .append("- Actions: \"follow\" (come with player), \"stay\" (wait here), \"guide\" (fly ahead and lead the player to WORLD STATE.last_found_place; use it whenever the player accepts your offer to guide them, e.g. they say yes), ")
-          .append("\"defend\" (attack the nearest monster near the player), \"flee\" (fly away from danger), ")
+          .append("\"defend\" (attack the nearest monster near the player), \"flee\" (fly away from danger), \"move_aside\" (get out of the player's way), ")
           .append("\"hit_player\" (a small slap) ONLY if the player explicitly asks to be hit, or you are truly angry (anger >= 70). Otherwise \"none\".\n")
           .append("- BE SMART: read WORLD STATE (health, food, inventory, threats, recent_events, time, place) and give concrete, useful ")
           .append("Minecraft advice (what to craft, where to go, what to eat, how to survive). Notice problems before the player does. ")
@@ -44,7 +44,9 @@ public final class PromptBuilder {
           .append("Never give command blocks, spawn eggs, barriers or other admin items. Otherwise \"give\": null.\n")
           .append("- COMBAT: the game decides automatically whether you defend the player or flee, and tells you with an event_note. ")
           .append("When the player asks you to fight or run, use \"defend\" or \"flee\".\n")
-          .append("- If WORLD STATE has an event_note, react to that event in character.\n\n")
+          .append("- If WORLD STATE has an event_note, react to that event in character.\n")
+          .append("- LONG-TERM MEMORY holds what you remember from earlier sessions. Use it naturally (callbacks, inside jokes, ")
+          .append("their name), but never recite the list.\n\n")
           .append("PERSONALITIES: ").append(Personality.allIds()).append('\n');
         for (Personality p : Personality.values()) sb.append("- ").append(p.id).append(": ").append(p.guide).append('\n');
         sb.append("\nCURRENT PERSONALITY: ").append(maelity.mood().get().id)
@@ -52,8 +54,9 @@ public final class PromptBuilder {
           .append("CATALOG: ").append(TargetCatalog.idsForPrompt()).append("\n\n")
           .append("OUTPUT: respond with ONLY this JSON object and nothing else:\n")
           .append("{\"say\": string, \"mood\": \"").append(Personality.allIds()).append("\", ")
-          .append("\"action\": \"none|follow|stay|guide|defend|flee|hit_player\", \"find\": null or catalog id, ")
+          .append("\"action\": \"none|follow|stay|guide|defend|flee|move_aside|hit_player\", \"find\": null or catalog id, ")
           .append("\"give\": null or {\"item\": \"minecraft:id\", \"count\": number}}\n\n")
+          .append(memoryBlock(player))
           .append("WORLD STATE: ").append(worldState(maelity, player, extraNote).toString());
         return sb.toString();
     }
@@ -94,6 +97,7 @@ public final class PromptBuilder {
         me.addProperty("health", Math.round(maelity.getHealth()) + "/" + Math.round(maelity.getMaxHealth()));
         me.addProperty("affection_for_player", Math.round(maelity.mood().affection()));
         me.addProperty("combat", maelity.combatState());
+        me.addProperty("glowing_light", maelity.isLit());
         long[] cd = maelity.giftCooldownLeft(level.getGameTime());
         JsonObject can = new JsonObject();
         can.addProperty("common_items", cd[0] == 0);
@@ -114,6 +118,14 @@ public final class PromptBuilder {
         if (ev.size() > 0) o.add("recent_events", ev);
         if (eventNote != null) o.addProperty("event_note", eventNote);
         return o;
+    }
+
+    private static String memoryBlock(ServerPlayer p) {
+        java.util.List<String> mem = LongMemory.get(p.getServer(), p.getUUID());
+        if (mem.isEmpty()) return "LONG-TERM MEMORY: (nothing yet, you are just getting to know this player)\n\n";
+        StringBuilder sb = new StringBuilder("LONG-TERM MEMORY:\n");
+        for (String m : mem) sb.append("- ").append(m).append('\n');
+        return sb.append('\n').toString();
     }
 
     /** Resumen del inventario: los objetos mas abundantes (para que de consejos con sentido). */

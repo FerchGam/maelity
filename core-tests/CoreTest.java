@@ -1,6 +1,7 @@
 import dev.maelity.core.GiftPolicy;
 import dev.maelity.core.CombatPolicy;
 import dev.maelity.core.*;
+import java.net.http.HttpClient;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -96,6 +97,79 @@ public class CoreTest {
         }
 
 
+
+        // ---- memoria y voces
+        check("mi casa esta junto al rio".equals(IntentParser.rememberThat("Recuerda que mi casa está junto al río")), "'recuerda que...' guarda el dato");
+        check(IntentParser.rememberThat("¿recuerdas cuando casi muero?") == null, "'¿recuerdas...?' no es una orden de recordar");
+        check("my base is near the desert".equals(IntentParser.rememberThat("Maelity, remember that my base is near the desert")), "'remember that...' en ingles");
+        check(PiperTts.voiceUrl("es_MX-claude-high", ".onnx").equals(
+                "https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high/es_MX-claude-high.onnx"), "URL de voz Piper");
+        check(PiperTts.voiceUrl("es_ES-mls_10246-low", ".onnx.json").endsWith("/es/es_ES/mls_10246/low/es_ES-mls_10246-low.onnx.json"), "URL de voz Piper con guion bajo");
+        check(!PiperTts.validVoice("../../evil-x-high"), "voz Piper invalida rechazada");
+        {
+            byte[] pcmIn = new byte[4410 * 2];
+            byte[] w = Wav.fromPcm16(pcmIn, 22050, 1);
+            try (AudioInputStream ais = VoicePlayer.open(w)) {
+                check(ais.getFormat().getSampleRate() == 22050f && ais.getFrameLength() == 4410, "PCM de ElevenLabs -> WAV reproducible");
+            }
+        }
+        {
+            java.nio.file.Path tmp = java.nio.file.Files.createTempDirectory("mz");
+            java.nio.file.Path z = tmp.resolve("a.zip");
+            try (var zo = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(z))) {
+                zo.putNextEntry(new java.util.zip.ZipEntry("piper/piper.exe")); zo.write(1); zo.closeEntry();
+            }
+            java.lang.reflect.Method um = PiperTts.class.getDeclaredMethod("unzip", java.nio.file.Path.class, java.nio.file.Path.class);
+            um.setAccessible(true);
+            um.invoke(null, z, tmp.resolve("bin"));
+            check(java.nio.file.Files.exists(tmp.resolve("bin/piper/piper.exe")), "unzip de Piper");
+            java.nio.file.Path bad = tmp.resolve("b.zip");
+            try (var zo = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(bad))) {
+                zo.putNextEntry(new java.util.zip.ZipEntry("../escape.txt")); zo.write(1); zo.closeEntry();
+            }
+            boolean blocked = false;
+            try { um.invoke(null, bad, tmp.resolve("bin2")); } catch (java.lang.reflect.InvocationTargetException ex) { blocked = true; }
+            check(blocked && !java.nio.file.Files.exists(tmp.resolve("escape.txt")), "zip con rutas peligrosas bloqueado");
+        }
+        {
+            // servidor falso para comprobar como se llama a ElevenLabs y Fish Audio
+            var seen = new java.util.concurrent.ConcurrentHashMap<String, String>();
+            var srv = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+            srv.createContext("/", ex -> {
+                String body = new String(ex.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                seen.put("path", ex.getRequestURI().toString());
+                seen.put("xi", String.valueOf(ex.getRequestHeaders().getFirst("xi-api-key")));
+                seen.put("auth", String.valueOf(ex.getRequestHeaders().getFirst("Authorization")));
+                seen.put("model", String.valueOf(ex.getRequestHeaders().getFirst("model")));
+                seen.put("body", body);
+                byte[] out = ex.getRequestURI().getPath().contains("text-to-speech") ? new byte[2000] : Wav.fromPcm16(new byte[2000], 44100, 1);
+                ex.sendResponseHeaders(200, out.length); ex.getResponseBody().write(out); ex.close();
+            });
+            srv.start();
+            int port = srv.getAddress().getPort();
+            // redirige los hosts reales al servidor falso con un proxy HTTP simple no es trivial: se prueba con un cliente que reescribe la URL
+            HttpClient fake = new RewritingClient("http://127.0.0.1:" + port);
+            byte[] w1 = CloudTts.elevenLabs(fake, "k1", "VOICE", "Hola \"amigo\"").get();
+            check(Wav.isWav(w1) && seen.get("path").equals("/v1/text-to-speech/VOICE?output_format=pcm_22050")
+                    && seen.get("xi").equals("k1") && seen.get("body").contains("eleven_flash_v2_5") && seen.get("body").contains("\\\"amigo\\\""),
+                    "ElevenLabs: ruta, clave y cuerpo correctos");
+            byte[] w2 = CloudTts.fishAudio(fake, "k2", "s2.1-pro-free", "", "Hola").get();
+            check(Wav.isWav(w2) && seen.get("path").equals("/v1/tts") && seen.get("auth").equals("Bearer k2")
+                    && seen.get("model").equals("s2.1-pro-free") && seen.get("body").contains("\"format\":\"wav\"") && !seen.get("body").contains("reference_id"),
+                    "Fish Audio: ruta, clave, modelo y cuerpo correctos");
+            CloudTts.fishAudio(fake, "k2", "", "abc123", "Hola").get();
+            check(seen.get("body").contains("\"reference_id\":\"abc123\""), "Fish Audio: voz elegida");
+            boolean failed = false;
+            try { CloudTts.elevenLabs(fake, "", "V", "x").get(); } catch (Exception ex) { failed = true; }
+            check(failed, "ElevenLabs sin clave falla (y el mod usa la voz de Windows)");
+            srv.stop(0);
+        }
+
+        // ---- apartarse
+        check(IntentParser.wantsAside("Muévete, quiero poner un bloque ahí"), "'muévete' la aparta");
+        check(IntentParser.wantsAside("apártate por favor"), "'apártate' la aparta");
+        check(IntentParser.wantsAside("get out of the way"), "'get out of the way' la aparta");
+        check(!IntentParser.wantsAside("vamos a la aldea"), "frase normal no la aparta");
         // ---- aceptar que te guie
         check(IntentParser.isYes("sí"), "'sí' es afirmativo");
         check(IntentParser.isYes("Sí, llévame"), "'sí, llévame' es afirmativo");
@@ -154,5 +228,31 @@ public class CoreTest {
         }
         System.out.println(fails == 0 ? "CORE TESTS OK" : fails + " FAILED");
         System.exit(fails == 0 ? 0 : 1);
+    }
+
+    /** HttpClient que manda todo a un servidor local (para probar las llamadas sin internet). */
+    static final class RewritingClient extends HttpClient {
+        private final HttpClient real = HttpClient.newHttpClient();
+        private final String base;
+        RewritingClient(String base) { this.base = base; }
+        private java.net.http.HttpRequest rw(java.net.http.HttpRequest r) {
+            java.net.URI u = r.uri();
+            java.net.http.HttpRequest.Builder b = java.net.http.HttpRequest.newBuilder(java.net.URI.create(base + u.getRawPath() + (u.getRawQuery() == null ? "" : "?" + u.getRawQuery())));
+            r.headers().map().forEach((k, vs) -> vs.forEach(v -> b.header(k, v)));
+            b.method(r.method(), r.bodyPublisher().orElse(java.net.http.HttpRequest.BodyPublishers.noBody()));
+            return b.build();
+        }
+        @Override public <T> java.net.http.HttpResponse<T> send(java.net.http.HttpRequest r, java.net.http.HttpResponse.BodyHandler<T> h) throws java.io.IOException, InterruptedException { return real.send(rw(r), h); }
+        @Override public <T> java.util.concurrent.CompletableFuture<java.net.http.HttpResponse<T>> sendAsync(java.net.http.HttpRequest r, java.net.http.HttpResponse.BodyHandler<T> h) { return real.sendAsync(rw(r), h); }
+        @Override public <T> java.util.concurrent.CompletableFuture<java.net.http.HttpResponse<T>> sendAsync(java.net.http.HttpRequest r, java.net.http.HttpResponse.BodyHandler<T> h, java.net.http.HttpResponse.PushPromiseHandler<T> p) { return real.sendAsync(rw(r), h); }
+        @Override public java.util.Optional<java.net.CookieHandler> cookieHandler() { return real.cookieHandler(); }
+        @Override public java.util.Optional<java.time.Duration> connectTimeout() { return real.connectTimeout(); }
+        @Override public Redirect followRedirects() { return real.followRedirects(); }
+        @Override public java.util.Optional<java.net.ProxySelector> proxy() { return real.proxy(); }
+        @Override public javax.net.ssl.SSLContext sslContext() { return real.sslContext(); }
+        @Override public javax.net.ssl.SSLParameters sslParameters() { return real.sslParameters(); }
+        @Override public java.util.Optional<java.net.Authenticator> authenticator() { return real.authenticator(); }
+        @Override public Version version() { return real.version(); }
+        @Override public java.util.Optional<java.util.concurrent.Executor> executor() { return real.executor(); }
     }
 }

@@ -37,6 +37,7 @@ public final class MaelityConfig {
         public final ModConfigSpec.ConfigValue<String> giftsMaxTier;
         public final ModConfigSpec.BooleanValue defendEnabled;
         public final ModConfigSpec.BooleanValue proactiveComments;
+        public final ModConfigSpec.BooleanValue glowAtNight;
 
         Common(ModConfigSpec.Builder b) {
             b.translation(T + "ai").push("ai");
@@ -81,6 +82,9 @@ public final class MaelityConfig {
             proactiveComments = b.comment("Maelity comenta por su cuenta (cae la noche, tienes hambre, estas herido...).")
                     .translation(T + "proactiveComments")
                     .define("proactiveComments", true);
+            glowAtNight = b.comment("De noche o bajo tierra Maelity brilla e ilumina a su alrededor (bloque de luz invisible que la sigue).")
+                    .translation(T + "glowAtNight")
+                    .define("glowAtNight", true);
             b.pop();
         }
     }
@@ -91,6 +95,15 @@ public final class MaelityConfig {
         public final ModConfigSpec.BooleanValue languageChosen;
         public final ModConfigSpec.BooleanValue voiceEnabled;
         public final ModConfigSpec.DoubleValue volume;
+        public final ModConfigSpec.ConfigValue<String> voiceEngine;
+        public final ModConfigSpec.ConfigValue<String> voiceGender;
+        public final ModConfigSpec.ConfigValue<String> piperVoiceEs;
+        public final ModConfigSpec.ConfigValue<String> piperVoiceEn;
+        public final ModConfigSpec.ConfigValue<String> elevenApiKey;
+        public final ModConfigSpec.ConfigValue<String> elevenVoiceId;
+        public final ModConfigSpec.ConfigValue<String> fishApiKey;
+        public final ModConfigSpec.ConfigValue<String> fishVoiceId;
+        public final ModConfigSpec.ConfigValue<String> fishModel;
         public final ModConfigSpec.ConfigValue<String> shape;
         public final ModConfigSpec.ConfigValue<String> faceStyle;
         public final ModConfigSpec.BooleanValue moodColors;
@@ -110,6 +123,29 @@ public final class MaelityConfig {
                     .translation(T + "voiceEnabled")
                     .define("voiceEnabled", true);
             volume = b.translation(T + "volume").defineInRange("volume", 0.9, 0.0, 1.0);
+
+            b.translation(T + "voice").push("voice");
+            voiceEngine = b.comment("Motor de voz: piper (gratis, sin internet, se descarga solo la 1a vez) | elevenlabs | fish | windows")
+                    .translation(T + "voiceEngine")
+                    .defineInList("voiceEngine", "piper", new ArrayList<>(List.of("piper", "elevenlabs", "fish", "windows")));
+            voiceGender = b.comment("Voz femenina o masculina: female | male")
+                    .translation(T + "voiceGender")
+                    .defineInList("voiceGender", "female", new ArrayList<>(List.of("female", "male")));
+            piperVoiceEs = b.comment("Opcional: voz de Piper en espanol (ej. es_MX-claude-high). Vacio = automatica segun genero.")
+                    .translation(T + "piperVoiceEs").define("piperVoiceEs", "");
+            piperVoiceEn = b.comment("Opcional: voz de Piper en ingles (ej. en_US-amy-medium). Vacio = automatica segun genero.")
+                    .translation(T + "piperVoiceEn").define("piperVoiceEn", "");
+            elevenApiKey = b.comment("Clave de ElevenLabs (elevenlabs.io > API keys). Plan gratis con creditos mensuales.")
+                    .translation(T + "elevenApiKey").define("elevenApiKey", "");
+            elevenVoiceId = b.comment("Opcional: ID de voz de ElevenLabs. Vacio = automatica segun genero.")
+                    .translation(T + "elevenVoiceId").define("elevenVoiceId", "");
+            fishApiKey = b.comment("Clave de Fish Audio (fish.audio > API).")
+                    .translation(T + "fishApiKey").define("fishApiKey", "");
+            fishVoiceId = b.comment("Opcional: ID de voz de Fish Audio (de su biblioteca de voces). Vacio = voz por defecto.")
+                    .translation(T + "fishVoiceId").define("fishVoiceId", "");
+            fishModel = b.comment("Modelo de Fish Audio. s2.1-pro-free es gratis por tiempo limitado; luego usa s2.1-pro (de pago).")
+                    .translation(T + "fishModel").define("fishModel", "s2.1-pro-free");
+            b.pop();
 
             b.translation(T + "look").push("look");
             shape = b.comment("Forma de Maelity: cube (cubo) | ball (pelotita)")

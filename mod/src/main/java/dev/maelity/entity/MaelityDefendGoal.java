@@ -22,14 +22,18 @@ class MaelityDefendGoal extends Goal {
     public boolean canUse() {
         LivingEntity t = maelity.getCombatTarget();
         if (t == null || !t.isAlive() || t.level() != maelity.level() || maelity.isFleeing()) return false;
+        var o = maelity.getOwner();
+        if (o != null && (t.distanceToSqr(o) > 18 * 18 || maelity.distanceToSqr(o) > 28 * 28)) { maelity.clearCombatTarget(); return false; }
         target = t;
         return true;
     }
 
     @Override
     public boolean canContinueToUse() {
+        var o = maelity.getOwner();
         return target != null && target.isAlive() && !maelity.isFleeing()
-                && maelity.getCombatTarget() == target && maelity.distanceToSqr(target) < 40 * 40;
+                && maelity.getCombatTarget() == target && maelity.distanceToSqr(target) < 40 * 40
+                && (o == null || (target.distanceToSqr(o) < 20 * 20 && maelity.distanceToSqr(o) < 30 * 30));   // no se aleja persiguiendo
     }
 
     @Override

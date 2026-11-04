@@ -17,6 +17,10 @@ import net.minecraft.world.entity.monster.ElderGuardian;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -65,6 +69,8 @@ import java.util.UUID;
 public class MaelityEntity extends PathfinderMob {
     private static final EntityDataAccessor<Integer> DATA_MOOD =
             SynchedEntityData.defineId(MaelityEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_LIT =
+            SynchedEntityData.defineId(MaelityEntity.class, EntityDataSerializers.BOOLEAN);
 
     private final MoodEngine mood = new MoodEngine();
     private final Deque<String[]> history = new ArrayDeque<>();
@@ -80,6 +86,15 @@ public class MaelityEntity extends PathfinderMob {
     private int hitsThisMinute;
     private long hitWindowStart;
     private long lastPetTick;
+    private int memoryTurns;
+
+    // --- luz de noche (bloque de luz invisible que la sigue)
+    @Nullable private BlockPos lightPos;
+    @Nullable private BlockPos staleLight;      // luz que quedo de antes de guardar el mundo
+
+    // --- apartarse cuando estorba
+    private long asideUntil;
+    private long lookedAtSince = -1;
 
     // --- regalos
     private final long[] giftLast = {Long.MIN_VALUE / 4, Long.MIN_VALUE / 4, Long.MIN_VALUE / 4};
@@ -133,6 +148,7 @@ public class MaelityEntity extends PathfinderMob {
         this.goalSelector.addGoal(0, new MaelityFleeGoal(this));
         this.goalSelector.addGoal(1, new MaelityDefendGoal(this));
         this.goalSelector.addGoal(2, new MaelityHitGoal(this));
+        this.goalSelector.addGoal(2, new MaelityAsideGoal(this));
         this.goalSelector.addGoal(3, new MaelityGuideGoal(this));
         this.goalSelector.addGoal(4, new MaelityFollowGoal(this, 1.15, 3.5f, 6f));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
@@ -142,6 +158,7 @@ public class MaelityEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_MOOD, 0);
+        builder.define(DATA_LIT, false);
     }
 
     /** En el cliente: al cambiar de humor suelta unas particulas (corazones, notas, humo...). */
@@ -247,12 +264,21 @@ public class MaelityEntity extends PathfinderMob {
             ServerPlayer o = sl1.getServer().getPlayerList().getPlayer(ownerId);
             if (o != null && o.isAlive()) proactive(o, now);
         }
+        if (staleLight != null) { clearLightAt(staleLight); staleLight = null; }
+        if (now % 5 == 0) updateLight();
+        if (now % 10 == 0) checkInTheWay(now);
+        if (now % 100 == 50 && mergeDuplicates()) return;
         if (now % 20 == 0) {
             if (!stay && ownerId != null && level() instanceof ServerLevel sl) {
                 ServerPlayer sp = sl.getServer().getPlayerList().getPlayer(ownerId);
                 if (sp != null && sp.serverLevel() != sl) {
                     followAcrossDimension(sp);
                     return;
+                }
+                // se quedo muy atras (peleando, atascada...): reaparece junto al jugador
+                if (sp != null && sp.isAlive() && distanceToSqr(sp) > 48 * 48) {
+                    combatTarget = null;
+                    teleportNear(sp);
                 }
             }
             Player owner = getOwner();
@@ -510,6 +536,113 @@ public class MaelityEntity extends PathfinderMob {
         return o.getHealth() <= 8f || level().getGameTime() - lastThreatTick < 100;
     }
 
+    // ------------------------------------------------------------------ luz de noche
+
+    public boolean isLit() { return entityData.get(DATA_LIT); }
+
+    private boolean wantsLight() {
+        if (!MaelityConfig.COMMON.glowAtNight.get() || isRemoved()) return false;
+        BlockPos p = blockPosition();
+        long t = level().getDayTime() % 24000L;
+        boolean night = t >= 12800L && t <= 23200L;
+        return night || !level().canSeeSky(p) || level().isThundering();
+    }
+
+    private void updateLight() {
+        boolean want = wantsLight();
+        if (entityData.get(DATA_LIT) != want) entityData.set(DATA_LIT, want);
+        if (!want) { clearLight(); return; }
+        BlockPos here = blockPosition();
+        if (here.equals(lightPos)) return;
+        BlockPos spot = null;
+        for (BlockPos c : new BlockPos[]{here, here.above(), here.below()}) {
+            if (c.equals(lightPos) || level().getBlockState(c).isAir()) { spot = c; break; }
+        }
+        if (spot == null || spot.equals(lightPos)) return;
+        clearLight();
+        level().setBlock(spot, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 14), 3);
+        lightPos = spot;
+    }
+
+    private void clearLight() {
+        if (lightPos != null) { clearLightAt(lightPos); lightPos = null; }
+    }
+
+    private void clearLightAt(BlockPos p) {
+        if (level().isLoaded(p) && level().getBlockState(p).is(Blocks.LIGHT)) level().setBlock(p, Blocks.AIR.defaultBlockState(), 3);
+    }
+
+    @Override
+    public void remove(Entity.RemovalReason reason) {
+        // al descargarse el chunk la luz se guarda y se limpia al volver a cargar; en cualquier otro caso se quita ya
+        if (!level().isClientSide && reason != Entity.RemovalReason.UNLOADED_TO_CHUNK
+                && reason != Entity.RemovalReason.UNLOADED_WITH_PLAYER) clearLight();
+        super.remove(reason);
+    }
+
+    // ------------------------------------------------------------------ no estorbar
+
+    /** Se aparta detras del jugador unos segundos ("muevete", o si la miras con un bloque en la mano). */
+    public void moveAside() {
+        asideUntil = level().getGameTime() + 20 * 8;
+    }
+
+    boolean isMovingAside() { return level().getGameTime() < asideUntil; }
+
+    private void checkInTheWay(long now) {
+        Player o = getOwner();
+        if (o == null || o.level() != level() || isMovingAside() || combatTarget != null) { lookedAtSince = -1; return; }
+        boolean block = o.getMainHandItem().getItem() instanceof BlockItem || o.getOffhandItem().getItem() instanceof BlockItem;
+        double d2 = distanceToSqr(o);
+        if (!block || d2 > 6 * 6) { lookedAtSince = -1; return; }
+        Vec3 look = o.getViewVector(1f).normalize();
+        Vec3 to = getBoundingBox().getCenter().subtract(o.getEyePosition()).normalize();
+        if (look.dot(to) > 0.94) {                      // la estas mirando de frente (~20 grados)
+            if (lookedAtSince < 0) lookedAtSince = now;
+            else if (now - lookedAtSince >= 10) { moveAside(); lookedAtSince = -1; }
+        } else {
+            lookedAtSince = -1;
+        }
+    }
+
+    // ------------------------------------------------------------------ una sola Maelity por jugador
+
+    /** Si hay otra Maelity del mismo jugador cerca, se fusionan en una (la mas cercana al jugador se queda). */
+    private boolean mergeDuplicates() {
+        if (ownerId == null) return false;
+        List<MaelityEntity> others = level().getEntitiesOfClass(MaelityEntity.class, getBoundingBox().inflate(160),
+                m -> m != this && !m.isRemoved() && ownerId.equals(m.ownerId));
+        if (others.isEmpty()) return false;
+        Player o = getOwner();
+        for (MaelityEntity other : others) {
+            boolean iStay = o != null ? distanceToSqr(o) <= other.distanceToSqr(o) : getId() < other.getId();
+            MaelityEntity keeper = iStay ? this : other;
+            MaelityEntity gone = iStay ? other : this;
+            for (int i = 0; i < keeper.giftLast.length; i++) keeper.giftLast[i] = Math.max(keeper.giftLast[i], gone.giftLast[i]);
+            if (level() instanceof ServerLevel sl) sl.sendParticles(ParticleTypes.POOF, gone.getX(), gone.getY() + 0.3, gone.getZ(), 12, 0.3, 0.3, 0.3, 0.02);
+            gone.discard();
+            if (o instanceof ServerPlayer sp) {
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("es".equals(keeper.lang)
+                        ? "§7Tus dos Maelity se fusionaron en una sola." : "§7Your two Maelitys merged into one."));
+            }
+            if (gone == this) return true;
+        }
+        return false;
+    }
+
+    private void teleportNear(Player p) {
+        teleportTo(p.getX() + (getRandom().nextDouble() - 0.5) * 3, p.getY() + 1.4, p.getZ() + (getRandom().nextDouble() - 0.5) * 3);
+        getNavigation().stop();
+    }
+
+    /** /maelity summon: trae a la Maelity que ya existe (aunque este lejos o en otra dimension) en vez de crear otra. */
+    public void bringTo(ServerPlayer sp) {
+        combatTarget = null;
+        fleeUntil = 0;
+        if (sp.serverLevel() != level()) { followAcrossDimension(sp); return; }
+        teleportNear(sp);
+    }
+
     // ------------------------------------------------------------------ regalos
 
     public long[] giftCooldownLeft(long now) {
@@ -654,6 +787,10 @@ public class MaelityEntity extends PathfinderMob {
 
     public Iterable<String[]> history() { return history; }
 
+    /** Turnos de charla desde el ultimo resumen de memoria. */
+    public int countTurnForMemory() { return ++memoryTurns; }
+    public void resetMemoryTurns() { memoryTurns = 0; }
+
     public void remember(String role, String content) {
         history.addLast(new String[]{role, content});
         while (history.size() > 12) history.removeFirst();
@@ -679,6 +816,7 @@ public class MaelityEntity extends PathfinderMob {
         tag.putBoolean("Stay", stay);
         tag.putString("Lang", lang);
         tag.putFloat("Affection", mood.affection());
+        if (lightPos != null) tag.putLong("LightPos", lightPos.asLong());
         tag.putLongArray("GiftTicks", giftLast.clone());
     }
 
@@ -688,6 +826,7 @@ public class MaelityEntity extends PathfinderMob {
         if (tag.hasUUID("Owner")) ownerId = tag.getUUID("Owner");
         mood.load(Personality.fromId(tag.getString("Mood")), tag.getFloat("Anger"),
                 tag.contains("Affection") ? tag.getFloat("Affection") : 50f);
+        if (tag.contains("LightPos")) staleLight = BlockPos.of(tag.getLong("LightPos"));
         long[] g = tag.getLongArray("GiftTicks");
         for (int i = 0; i < Math.min(g.length, giftLast.length); i++) giftLast[i] = g[i];
         stay = tag.getBoolean("Stay");

@@ -41,8 +41,17 @@ public final class MaelityBrain {
 
         IntentParser.Intent intent = IntentParser.parse(text);
         String note = null;
+        String fact = IntentParser.rememberThat(text);
+        if (fact != null) {
+            LongMemory.add(player.getServer(), player.getUUID(), "The player asked me to remember: " + fact);
+            note = "The player asked you to remember this, and it is now saved in your long-term memory: '" + fact + "'. Confirm briefly.";
+        }
         if (intent.stay()) maelity.setStay(true);
         if (intent.follow()) maelity.setStay(false);
+        if (IntentParser.wantsAside(text)) {
+            maelity.moveAside();
+            note = "The player asked you to move out of the way (they want to place blocks). You are already moving behind them. Acknowledge briefly.";
+        }
         if (intent.hitMe()) {
             boolean ok = maelity.requestHit(true);
             note = ok ? "The player asked you to slap them; you are about to do it."
@@ -95,6 +104,10 @@ public final class MaelityBrain {
                     reply = parse(content);
                     maelity.remember("user", userText);
                     maelity.remember("assistant", content);
+                    if (maelity.countTurnForMemory() >= 6) {
+                        maelity.resetMemoryTurns();
+                        LongMemory.consolidate(player, maelity);
+                    }
                 } catch (Exception e) {
                     MaelityMod.LOGGER.warn("Maelity: respuesta ilegible del backend: {}", e.toString());
                 }
@@ -171,6 +184,7 @@ public final class MaelityBrain {
             case "follow" -> maelity.setStay(false);
             case "stay" -> maelity.setStay(true);
             case "hit_player" -> maelity.requestHit(false);
+            case "move_aside" -> maelity.moveAside();
             case "guide" -> { if (r.find() == null && maelity.getGuideTarget() == null) maelity.startGuiding(); }
             case "defend" -> maelity.commandDefend();
             case "flee" -> maelity.commandFlee();

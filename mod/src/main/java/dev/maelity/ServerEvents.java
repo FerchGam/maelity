@@ -51,6 +51,20 @@ public final class ServerEvents {
                             ServerHandlers.ask(p, StringArgumentType.getString(ctx, "text"), MaelityEntity.clientLang(p));
                             return 1;
                         })))
+                .then(Commands.literal("memory").executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    java.util.List<String> mem = dev.maelity.ai.LongMemory.get(p.getServer(), p.getUUID());
+                    ctx.getSource().sendSuccess(() -> Component.literal(mem.isEmpty()
+                            ? "§7Maelity aún no recuerda nada de ti. / Maelity doesn't remember anything about you yet."
+                            : "§eMaelity recuerda / remembers:§r\n- " + String.join("\n- ", mem)), false);
+                    return 1;
+                }))
+                .then(Commands.literal("forget").executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    dev.maelity.ai.LongMemory.clear(p.getServer(), p.getUUID());
+                    ctx.getSource().sendSuccess(() -> Component.literal("§7Memoria borrada. / Memory cleared."), false);
+                    return 1;
+                }))
                 .then(Commands.literal("key")
                         .requires(s -> s.getServer().isSingleplayer() || s.hasPermission(2))
                         .then(Commands.argument("clave", StringArgumentType.greedyString()).executes(ctx -> {
@@ -80,9 +94,14 @@ public final class ServerEvents {
 
     private static int summon(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer p = ctx.getSource().getPlayerOrException();
-        if (MaelityEntity.findFor(p) != null) {
-            ctx.getSource().sendFailure(Component.literal("You already have a Maelity nearby."));
-            return 0;
+        // si ya tiene una Maelity (aunque este lejos o en otra dimension), traerla en vez de crear otra
+        for (ServerLevel lvl : p.getServer().getAllLevels()) {
+            for (MaelityEntity m : lvl.getEntities(ModEntities.MAELITY.get(), x -> p.getUUID().equals(x.getOwnerId()))) {
+                m.bringTo(p);
+                ctx.getSource().sendSuccess(() -> Component.literal("es".equals(MaelityEntity.clientLang(p))
+                        ? "§7Maelity vino volando hacia ti." : "§7Maelity flew back to you."), false);
+                return 1;
+            }
         }
         ServerLevel level = p.serverLevel();
         MaelityEntity a = ModEntities.MAELITY.get().create(level);

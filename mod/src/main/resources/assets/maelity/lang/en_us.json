@@ -39,5 +39,17 @@
   "maelity.configuration.color_sarcastic": "Color: sarcastic",
   "maelity.configuration.color_protective": "Color: protective",
   "maelity.configuration.color_mysterious": "Color: mysterious",
-  "maelity.configuration.color_angry": "Color: angry"
+  "maelity.configuration.color_angry": "Color: angry",
+  "maelity.configuration.voice": "Voice",
+  "maelity.configuration.voice.button": "Voice",
+  "maelity.configuration.voiceEngine": "Voice engine (piper, elevenlabs, fish, windows)",
+  "maelity.configuration.voiceGender": "Voice gender (female / male)",
+  "maelity.configuration.piperVoiceEs": "Piper Spanish voice (optional)",
+  "maelity.configuration.piperVoiceEn": "Piper English voice (optional)",
+  "maelity.configuration.elevenApiKey": "ElevenLabs API key",
+  "maelity.configuration.elevenVoiceId": "ElevenLabs voice ID (optional)",
+  "maelity.configuration.fishApiKey": "Fish Audio API key",
+  "maelity.configuration.fishVoiceId": "Fish Audio voice ID (optional)",
+  "maelity.configuration.fishModel": "Fish Audio model",
+  "maelity.configuration.glowAtNight": "Glows and lights up at night"
 }

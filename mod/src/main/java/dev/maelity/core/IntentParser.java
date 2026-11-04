@@ -49,6 +49,23 @@ public final class IntentParser {
     /** Pide que lo guie ("llevame", "guiame"), aunque no diga a donde. */
     public static boolean wantsGuide(String raw) { return GUIDE_ME.matcher(normalize(raw)).find(); }
 
+    private static final Pattern REMEMBER = Pattern.compile(
+            "(?<![a-z])(recuerda que|acuerdate de que|acuerdate que|no olvides que|ten en cuenta que|quiero que recuerdes que|"
+                    + "remember that|don t forget that|keep in mind that|i want you to remember that) (.{3,})");
+
+    /** "recuerda que mi casa esta junto al rio" -> "mi casa esta junto al rio"; null si no pide recordar nada. */
+    public static String rememberThat(String raw) {
+        Matcher m = REMEMBER.matcher(normalize(raw).replace("?", ""));
+        return m.find() ? m.group(2).trim() : null;
+    }
+
+    private static final Pattern ASIDE = Pattern.compile(
+            "(?<![a-z])(muevete|apartate|quitate|hazte a un lado|hazte para atras|sal de ahi|no estorbes|me estorbas|"
+                    + "move aside|move away|move over|get out of the way|out of my way|step aside|step back|you re in the way)(?![a-z])");
+
+    /** "muevete", "apartate", "get out of the way"... */
+    public static boolean wantsAside(String raw) { return ASIDE.matcher(normalize(raw)).find(); }
+
     /** El jugador la esta insultando (es/en). Sube su enfado sin depender del modelo. */
     public static boolean isInsult(String raw) { return INSULT.matcher(normalize(raw)).find(); }
 

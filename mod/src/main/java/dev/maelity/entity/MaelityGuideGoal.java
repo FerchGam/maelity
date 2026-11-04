@@ -45,9 +45,18 @@ class MaelityGuideGoal extends Goal {
         if (--recalc > 0) return;
         recalc = 10;
 
-        if (maelity.distanceToSqr(o) > 24 * 24) { // jugador muy atras: esperar
-            maelity.getNavigation().stop();
-            maelity.getLookControl().setLookAt(o, 30f, 30f);
+        if (maelity.distanceToSqr(o) > 24 * 24) {
+            double mx = t.getX() + 0.5 - maelity.getX(), mz = t.getZ() + 0.5 - maelity.getZ();
+            boolean playerBehind = mx * mx + mz * mz < horiz * horiz;   // Maelity va mas cerca del destino que el jugador
+            if (playerBehind) {                                        // el jugador se quedo atras: esperarlo
+                maelity.getNavigation().stop();
+                maelity.getLookControl().setLookAt(o, 30f, 30f);
+            } else if (maelity.distanceToSqr(o) > 40 * 40) {           // ella se quedo atras (peleando...): alcanzarlo
+                maelity.teleportTo(o.getX(), o.getY() + 1.6, o.getZ());
+                maelity.getNavigation().stop();
+            } else {
+                maelity.getNavigation().moveTo(o.getX(), o.getY() + 1.6, o.getZ(), 1.5);
+            }
             return;
         }
         double step = Math.min(7.0, horiz);

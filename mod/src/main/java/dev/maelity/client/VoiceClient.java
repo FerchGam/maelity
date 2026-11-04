@@ -5,7 +5,6 @@ import dev.maelity.MaelityConfig;
 import dev.maelity.MaelityMod;
 import dev.maelity.core.VoicePlayer;
 import dev.maelity.core.VoiceRecorder;
-import dev.maelity.core.WindowsTts;
 import dev.maelity.net.DirectAi;
 import dev.maelity.net.SpeakPayload;
 import net.minecraft.client.Minecraft;
@@ -75,9 +74,9 @@ public final class VoiceClient {
 
     public static void cancel() { RECORDER.cancel(); }
 
-    /** Sintetiza la voz con las voces de Windows (gratis, sin internet) y la reproduce. */
+    /** Sintetiza la voz con el motor elegido (Piper, ElevenLabs, Fish Audio o Windows) y la reproduce. */
     public static void speak(String text, String lang, String mood) {
-        WindowsTts.synth(text, lang, mood).whenComplete((wav, err) -> {
+        VoiceEngines.synth(text, lang, mood).whenComplete((wav, err) -> {
             if (err != null) {
                 MaelityMod.LOGGER.debug("Maelity TTS no disponible: {}", err.toString());
                 return;                                      // el texto ya se mostro en el chat
